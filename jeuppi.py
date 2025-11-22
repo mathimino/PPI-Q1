@@ -22,7 +22,6 @@ LIMITES_JEU = [10000,10000]
 RAYON_INFLUENCE = 1000
 CONSTANTE_GRAV = 0.0002
 
-
 #genereation carte
 NBR_PLANETE_MIN = 750
 NBR_PLANETE_MAX=1000
@@ -42,6 +41,10 @@ cpt_propuls = 0
 
 t_avant = 0
 v_avant = [0,0]
+
+vaisseau_avance = False
+vaisseau_tourne_droite = False
+vaisseau_tourne_gauche = False
 
 # Initialisation
 
@@ -72,22 +75,37 @@ vaisseau_images =[pygame.image.load('images/vaisseauettein.png').convert_alpha(f
                   pygame.image.load('images/vaisseauallume.png').convert_alpha(fenetre)]
 # Fonctions
 
-def gerer_touche(evenement):
-    global cpt_propuls
+def gerer_touche(event):
+    global vaisseau_avance
     global orientation_vaisseau
-
-    if evenement.type == pygame.KEYDOWN:
-        key = evenement.key
-        if key == pygame.K_q or key == pygame.K_LEFT:
-            orientation_vaisseau = orientation_vaisseau - 9
-        elif key == pygame.K_d or key == pygame.K_RIGHT:
-            orientation_vaisseau = orientation_vaisseau + 9
-        elif key == pygame.K_z or key == pygame.K_UP:
-            cpt_propuls = 5
-
+    global vaisseau_tourne_droite
+    global vaisseau_tourne_gauche
+   
+    if event.type == pygame.QUIT:
+            pygame.quit()
+            sys.exit()
+    if event.type == pygame.KEYDOWN or event.type == pygame.KEYUP:
+        key = event.key
+        match key:
+            case pygame.K_q:
+                if vaisseau_tourne_gauche == False and event.type == pygame.KEYDOWN:
+                    vaisseau_tourne_gauche = True
+                elif vaisseau_tourne_gauche and event.type == pygame.KEYUP:
+                    vaisseau_tourne_gauche = False
+            case pygame.K_d:
+                if vaisseau_tourne_droite == False and event.type == pygame.KEYDOWN:
+                    vaisseau_tourne_droite = True
+                elif vaisseau_tourne_droite and event.type == pygame.KEYUP:
+                    vaisseau_tourne_droite = False
+            case pygame.K_z:
+                #  Le vaisseau avance tant que la touche n'est pas lachée
+                if vaisseau_avance == False and event.type == pygame.KEYDOWN:
+                    vaisseau_avance = True
+                elif vaisseau_avance and event.type == pygame.KEYUP:
+                    vaisseau_avance = False
 
 def afficher_vaisseau(position_vaisseau, orientation_vaisseau):
-    if cpt_propuls > 0:
+    if vaisseau_avance:
         
         image_vaisseau = vaisseau_images[1]
         photo_vaisseau = pygame.transform.scale(image_vaisseau,(RAYON_VAISSEAU*2,RAYON_VAISSEAU*2))
@@ -102,8 +120,8 @@ def afficher_vaisseau(position_vaisseau, orientation_vaisseau):
         fenetre.blit(photo_vaisseau_r,position_vaisseau_photo)       
     return 
 
-
-# Fonction qui calcule la différence entra l'ancienne te la nouvelle position du vaisseau (afin de l'appliquer aux élément du jeu)
+    
+# Fonction qui calcule la différence entra l'ancienne et la nouvelle position du vaisseau (afin de l'appliquer aux élément du jeu)
 def get_delta_pos(temps_maintenant,masse_vaisseau,force,orientation_vaisseau,stop=False):
     global t_avant
     global v_avant
@@ -124,8 +142,9 @@ def get_delta_pos(temps_maintenant,masse_vaisseau,force,orientation_vaisseau,sto
     
     #accelereation moteur
     a = force/masse_vaisseau
-    ax = a*math.cos(orientation_vaisseau)
-    ay = a*math.sin(orientation_vaisseau)
+    angle_rad = math.radians(orientation_vaisseau)
+    ax = a*math.cos(angle_rad)
+    ay = a*math.sin(angle_rad)
     
     #calcul gravité pour chaque planete
     for entite in scene : 
@@ -211,6 +230,8 @@ def affiche(scene,delta_pos):
 
     coord_txt= police.render("X:" + str(round(position_vaisseau[0])) + ",Y:" + str(round(position_vaisseau[1])), True, WHITE)
     fenetre.blit(coord_txt, (0,0))
+    angle_txt= police.render("Angle:" + str(orientation_vaisseau,) + " deg", True, WHITE)
+    fenetre.blit(angle_txt, (0,15))
 
 
 def ajouteEntite(scene, entite):
@@ -267,16 +288,18 @@ generer_carte()
 
 # Boucle de jeu
 while True:
-    for evenement in pygame.event.get():
-        if evenement.type == pygame.QUIT:
-            pygame.quit()
-            sys.exit()
-        if evenement.type == pygame.KEYDOWN or pygame.MOUSEBUTTONDOWN:
-            gerer_touche(evenement)
+    for event in pygame.event.get():
+        # print(evenement.type)
+        gerer_touche(event)
+
+    # Calcul du nouvel angle du vaisseau (modulo 360)
+    if vaisseau_tourne_droite:
+        orientation_vaisseau = (orientation_vaisseau + 5)%360
+    if vaisseau_tourne_gauche:
+        orientation_vaisseau = (orientation_vaisseau - 5)%360
 
     force = 0
-    if cpt_propuls > 0:
-        cpt_propuls = cpt_propuls -1
+    if vaisseau_avance:
         force = 0.0003
     else:
         force = 0
@@ -287,8 +310,6 @@ while True:
 
     affiche(scene, delta_pos)
     collision_planete()
-    
-    
     pygame.display.flip()
     horloge.tick(images_par_seconde)
     
