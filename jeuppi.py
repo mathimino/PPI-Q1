@@ -2,6 +2,7 @@ import math
 import pygame
 import sys
 import random
+import os
 
 ##### Constantes #####
 
@@ -61,15 +62,11 @@ scene = []
 
 police = pygame.font.SysFont('monospace', dimensions_fenetre[1]//50, True)
 
-planetes_images =[pygame.image.load('images/mars.png').convert_alpha(fenetre),
-                  pygame.image.load('images/terre.png').convert_alpha(fenetre),
-                  pygame.image.load('images/jupiter.png').convert_alpha(fenetre),
-                  pygame.image.load('images/venus.png').convert_alpha(fenetre),
-                  pygame.image.load('images/mercure.png').convert_alpha(fenetre),
-                  pygame.image.load('images/uranus.png').convert_alpha(fenetre),
-                  pygame.image.load('images/saturne.png').convert_alpha(fenetre),
-                  pygame.image.load('images/neptune.png').convert_alpha(fenetre),
-                  ]
+# Création d'une liste contenant toutes les images situées dans images/planetes/
+planetes_images = []
+for image_planete in os.listdir("images/planetes/"):
+    planetes_images.append(pygame.image.load('images/planetes/' + image_planete).convert_alpha(fenetre))
+
 
 vaisseau_images =[pygame.image.load('images/vaisseauettein.png').convert_alpha(fenetre),
                   pygame.image.load('images/vaisseauallume.png').convert_alpha(fenetre)]
@@ -120,7 +117,7 @@ def afficher_vaisseau(position_vaisseau, orientation_vaisseau):
         #Il faut rajouter un moins sinon l'image du vaisseau tourne dans le mauvais sens
         photo_vaisseau_r = pygame.transform.rotate(photo_vaisseau,-orientation_vaisseau)
         position_vaisseau_photo = pygame.Rect(position_vaisseau[0]-RAYON_VAISSEAU,position_vaisseau[1]-RAYON_VAISSEAU,2*RAYON_VAISSEAU,2*RAYON_VAISSEAU)
-        fenetre.blit(photo_vaisseau_r,position_vaisseau_photo)       
+        fenetre.blit(photo_vaisseau_r,position_vaisseau_photo)      
     return 
 
 # Dear Arthur, va te faire foutre avec ton code à la chat gpt ça m'a pris trois heures à débuguer
