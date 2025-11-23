@@ -302,17 +302,16 @@ while True:
 
     # Calcul du nouvel angle du vaisseau par rapport à la position de la souris (modulo 360)
     angle_rad = math.atan2(delta_mouse_y,delta_mouse_x)
-    angle = (math.degrees(angle_rad))%360
-    orientation_vaisseau = angle
+    orientation_vaisseau = (math.degrees(angle_rad))%360
 
     if vaisseau_avance:
-        force_vaisseau = 0.0010
+        force_vaisseau = 1
     else:
         force_vaisseau = 0
 
     fenetre.fill(couleur_fond)
 
-    delta_pos = get_delta_pos(pygame.time.get_ticks(),1,force_vaisseau,orientation_vaisseau)
+    delta_pos = get_delta_pos(pygame.time.get_ticks(),1000,force_vaisseau,orientation_vaisseau)
 
     affiche(scene, delta_pos)
     # collision_planete()
