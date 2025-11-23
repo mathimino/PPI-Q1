@@ -13,9 +13,9 @@ ORANGE = (255,165,0)
 BLEU = (0,0,255)
 WHITE = (255, 255, 255)
 
-RAYON_VAISSEAU = 15
-RAYON_PLANETE_MIN=50
-RAYON_PLANETE_MAX=250
+RAYON_VAISSEAU = 20
+RAYON_PLANETE_MIN=100
+RAYON_PLANETE_MAX=300
 DIST_ENTRE_PLANETE = 300
 
 LIMITES_JEU = [10000,10000]
@@ -37,8 +37,10 @@ images_par_seconde = 25
 # Initialisation de variables
 
 position_vaisseau = [dimensions_fenetre[0]/2,dimensions_fenetre[1]/2]
+#coordonnés du vaisseau dans le repere écran
+x_vaisseau_ecran,y_vaisseau_ecran = dimensions_fenetre[0]/2,dimensions_fenetre[1]/2
 orientation_vaisseau = 0
-cpt_propuls = 0
+force_vaisseau = 0
 
 t_avant = 0
 v_avant = [0,0]
@@ -78,7 +80,6 @@ def gerer_touche(event):
     global orientation_vaisseau
     global vaisseau_tourne_droite
     global vaisseau_tourne_gauche
-   
     if event.type == pygame.QUIT:
             pygame.quit()
             sys.exit()
@@ -124,7 +125,7 @@ def afficher_vaisseau(position_vaisseau, orientation_vaisseau):
 # Dear Arthur, va te faire foutre avec ton code à la chat gpt ça m'a pris trois heures à débuguer
 
 # Fonction qui calcule la différence entra l'ancienne et la nouvelle position du vaisseau (afin de l'appliquer aux élément du jeu)
-def get_delta_pos(temps_maintenant,masse_vaisseau,force,orientation_vaisseau,stop=False):
+def get_delta_pos(temps_maintenant,masse_vaisseau,force_vaisseau,orientation_vaisseau,stop=False):
     global t_avant
     global v_avant
     global position_vaisseau
@@ -137,19 +138,15 @@ def get_delta_pos(temps_maintenant,masse_vaisseau,force,orientation_vaisseau,sto
     if t_avant == 0:
         t_avant = temps_maintenant
     delta_t = temps_maintenant - t_avant
-
-    #coordonnés du vaisseau dans le repere écran
-    x_vaisseau = dimensions_fenetre[0]/2
-    y_vaisseau = dimensions_fenetre[1]/2
     
     #accelereation moteur
-    a = force/masse_vaisseau
+    a = force_vaisseau/masse_vaisseau
     angle_rad = math.radians(orientation_vaisseau)
     ax = a*math.cos(angle_rad)
     ay = a*math.sin(angle_rad)
     
     # calcul gravité pour chaque planete
-    a_planete = calcul_gravite_planete(x_vaisseau,y_vaisseau,masse_vaisseau)
+    a_planete = calcul_gravite_planete(masse_vaisseau)
     ax+=a_planete[0]
     ay+=a_planete[1]
 
@@ -169,7 +166,7 @@ def get_delta_pos(temps_maintenant,masse_vaisseau,force,orientation_vaisseau,sto
         vy = 0
         v_avant = [vx,vy]
         t_avant = temps_maintenant
-        position_vaisseau = [x_vaisseau,y_vaisseau]
+        position_vaisseau = [x_vaisseau_ecran,y_vaisseau_ecran]
         return [0,0]
     
     v_avant = [vx,vy]
@@ -181,7 +178,7 @@ def get_delta_pos(temps_maintenant,masse_vaisseau,force,orientation_vaisseau,sto
     # On retourne la différence entre l'ancienne et nouvelle position du vaisseau
     return [x0-x,y0-y]
 
-def calcul_gravite_planete(x_vaisseau,y_vaisseau,masse_vaisseau):
+def calcul_gravite_planete(masse_vaisseau):
     a_planete_x = 0
     a_planete_y = 0
     for entite in scene : 
@@ -189,8 +186,8 @@ def calcul_gravite_planete(x_vaisseau,y_vaisseau,masse_vaisseau):
                 x_planete,y_planete = entite["position"]
 
                 #distance au carré entre le vaisseau et la planete choisie
-                delta_x = x_planete-x_vaisseau
-                delta_y = y_planete-y_vaisseau
+                delta_x = x_planete-x_vaisseau_ecran
+                delta_y = y_planete-y_vaisseau_ecran
                 r2 = delta_x**2 + delta_y**2
 
                 #on applique la gravité pour un rayon appartenant à [0,rayon_influence]
@@ -213,15 +210,13 @@ def stop_vaisseau():
 
 def collision_planete():
     global scene
-    x_vaisseau = dimensions_fenetre[0]/2
-    y_vaisseau = dimensions_fenetre[1]/2
 
     for entite in scene:
         if entite["type"]== "planete":
             x_planete , y_planete = entite["position"]
             #distance entre la planete et le vaisseau
             x,y = position_vaisseau
-            delta_x = x_planete-x_vaisseau
+            delta_x = x_planete-x_vaisseau_ecran
             delta_y = y_planete-y_vaisseau
             r2 = delta_x**2 + delta_y**2
             rayon_total = entite["rayon"]+RAYON_VAISSEAU
@@ -240,7 +235,7 @@ def affiche(scene,delta_pos):
 
     coord_txt= police.render("X:" + str(round(position_vaisseau[0])) + ",Y:" + str(round(position_vaisseau[1])), True, WHITE)
     fenetre.blit(coord_txt, (0,0))
-    angle_txt= police.render("Angle:" + str(orientation_vaisseau,) + " deg", True, WHITE)
+    angle_txt= police.render("Angle:" + str(round(orientation_vaisseau,2)) + " deg", True, WHITE)
     fenetre.blit(angle_txt, (0,15))
 
 
@@ -301,21 +296,23 @@ while True:
         # print(evenement.type)
         gerer_touche(event)
 
-    # Calcul du nouvel angle du vaisseau (modulo 360)
-    if vaisseau_tourne_droite:
-        orientation_vaisseau = (orientation_vaisseau + 5)%360
-    if vaisseau_tourne_gauche:
-        orientation_vaisseau = (orientation_vaisseau - 5)%360
 
-    force = 0
+    mouse_x,mouse_y = pygame.mouse.get_pos()
+    delta_mouse_x, delta_mouse_y = mouse_x-x_vaisseau_ecran, mouse_y-y_vaisseau_ecran
+
+    # Calcul du nouvel angle du vaisseau par rapport à la position de la souris (modulo 360)
+    angle_rad = math.atan2(delta_mouse_y,delta_mouse_x)
+    angle = (math.degrees(angle_rad))%360
+    orientation_vaisseau = angle
+
     if vaisseau_avance:
-        force = 0.0003
+        force_vaisseau = 0.0010
     else:
-        force = 0
+        force_vaisseau = 0
 
     fenetre.fill(couleur_fond)
 
-    delta_pos = get_delta_pos(pygame.time.get_ticks(),1,force,orientation_vaisseau)
+    delta_pos = get_delta_pos(pygame.time.get_ticks(),1,force_vaisseau,orientation_vaisseau)
 
     affiche(scene, delta_pos)
     # collision_planete()
