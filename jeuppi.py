@@ -16,7 +16,7 @@ WHITE = (255, 255, 255)
 RAYON_VAISSEAU = 20
 RAYON_PLANETE_MIN=100
 RAYON_PLANETE_MAX=300
-DIST_ENTRE_PLANETE = 300
+DIST_MIN_ENTRE_PLANETE = 300
 
 LIMITES_JEU = [10000,10000]
 
@@ -268,37 +268,45 @@ def afficher_planete(planete):
     return
 
 def generer_carte():
+    # Choix du nbr de planetes à créer
     nb_planetes=random.randint(NBR_PLANETE_MIN,NBR_PLANETE_MAX)
     couleurs = [ROUGE,JAUNE,BLEU,ORANGE,WHITE]
     for planetes in range(nb_planetes):
+        # Génération de la position du la nouvelle planete
         x_gen_planete = random.randint(-LIMITES_JEU[0],LIMITES_JEU[0])
         y_gen_planete = random.randint(-LIMITES_JEU[1],LIMITES_JEU[1])
         delta_x = x_gen_planete - position_vaisseau[0]
         delta_y = y_gen_planete -position_vaisseau[1]
-        dist_spawn = delta_x**2 + delta_y**2
-
-        if dist_spawn >= RAYON_INFLUENCE**2:
-            rayon = random.randint(RAYON_PLANETE_MIN,RAYON_PLANETE_MAX)
+        dist_spawn2 = delta_x**2 + delta_y**2
+        rayon = random.randint(RAYON_PLANETE_MIN,RAYON_PLANETE_MAX)
+        
+        #Si la nouvelle planete est au moins à une certaine distance du spawn du vaisseau
+        if dist_spawn2 >= (rayon+(dimensions_fenetre[0]+dimensions_fenetre[1])/4)**2:
             masse = rayon*rayon*3
             couleur_planete = random.choice(couleurs)
             choix_images_planete = random.choice(planetes_images)
             photo_planete=pygame.transform.scale(choix_images_planete,(rayon*2,rayon*2))
             peut_placer=True
+            
+            #On vérifie que la nouvelle planete n'est pas trop proche des planetes déjà existantes
             for planetes_cree in scene : 
                 if planetes_cree["type"]== "planete":
                     x_planete,y_planete = planetes_cree["position"]
                     delta_xp = x_gen_planete-x_planete
                     delta_yp = y_gen_planete-y_planete
-                    dist_planete2 = delta_xp**2 + delta_yp**2
-                    distance_min = rayon + planetes_cree["rayon"]+DIST_ENTRE_PLANETE
-                    if dist_planete2 <distance_min**2:
+                    dist_planetes2 = delta_xp**2 + delta_yp**2
+                    distance_min = rayon + planetes_cree["rayon"]+DIST_MIN_ENTRE_PLANETE
+                    if dist_planetes2 <distance_min**2:
                         peut_placer = False
             if peut_placer:
                 planete = nouvelle_planete([x_gen_planete,y_gen_planete],rayon,couleur_planete,masse,photo_planete)
                 ajouteEntite(scene,planete)
+
+
+### Boucle de jeu ###
+
 generer_carte()
 
-# Boucle de jeu
 while True:
     for event in pygame.event.get():
         gerer_touche(event)
