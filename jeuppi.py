@@ -68,11 +68,9 @@ for image_planete in os.listdir("images/planetes/"):
     planetes_images.append(pygame.image.load('images/planetes/' + image_planete).convert_alpha(fenetre))
 
 
-vaisseau_images =[]
-for image_vaisseau in os.listdir("images/vaisseau"):
-    vaisseau_images.append(pygame.image.load("image/vaisseau/" + image_vaisseau).convert_alpha(fenetre))
+vaisseau_images =[pygame.image.load('images/vaisseauettein.png').convert_alpha(fenetre),
+                  pygame.image.load('images/vaisseauallume.png').convert_alpha(fenetre)]
 
-    
 # Fonctions
 
 def gerer_touche(event):
