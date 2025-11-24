@@ -152,12 +152,20 @@ def get_delta_pos(temps_maintenant,force_vaisseau,orientation_vaisseau,stop=Fals
     #mise a jour vitesse
     vx = vx0+ax*delta_t
     vy = vy0+ay*delta_t
-    if vx>vitesse_max:
-        vx = vitesse_max
+
+    # Vitesse max
+    if abs(vx)>vitesse_max:
+        if vx > 0:
+            vx = vitesse_max
+        else:
+            vx = -vitesse_max
         ax = 0
-    if vy>vitesse_max:
-        vy = vitesse_max
-        ay = 0
+    if abs(vy)>vitesse_max:
+        if vy > 0:
+            vy = vitesse_max
+        else:
+            vy = -vitesse_max
+        ax = 0
 
 
     #mise a jour position du vaisseau
@@ -221,7 +229,7 @@ def collision_planete():
             #distance entre la planete et le vaisseau
             x,y = position_vaisseau
             delta_x = x_planete-x_vaisseau_ecran
-            delta_y = y_planete-y_vaisseau
+            delta_y = y_planete-y_vaisseau_ecran
             r2 = delta_x**2 + delta_y**2
             rayon_total = entite["rayon"]+RAYON_VAISSEAU
             if r2 <= rayon_total**2:
@@ -245,6 +253,8 @@ def affiche(scene,delta_pos):
     fenetre.blit(ax_txt, (0,30))
     vx_txt= police.render("Vitesse X:" + str(round(vx,2)), True, WHITE)
     fenetre.blit(vx_txt, (0,45))
+    vy_txt= police.render("Vitesse Y:" + str(round(vy,2)), True, WHITE)
+    fenetre.blit(vy_txt, (0,60))
 
 
 def ajouteEntite(scene, entite):
