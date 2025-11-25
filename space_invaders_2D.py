@@ -70,9 +70,9 @@ horloge = pygame.time.Clock()
 couleur_fond = NOIR
 
 scene = {
+    "etoiles":[],
     "planetes" : [],
     "entites" : [],
-    "etoiles":[],
     "vaisseau":[]
 }
 
@@ -295,13 +295,14 @@ def generer_carte():
                 ajouteEntite(scene["planetes"],planete)
 
 def generer_fond_etoile():
-    for etoiles in range(NOMBRE_ETOILES):
-        print("prout")
+    for etoiles in range (NOMBRE_ETOILES):
+        print("bonjour")
         x_gen_etoiles = random.randint(-LIMITES_JEU[0],LIMITES_JEU[0])
         y_gen_etoiles = random.randint(-LIMITES_JEU[1],LIMITES_JEU[1])
         etoile = nouvelle_etoile([x_gen_etoiles,y_gen_etoiles])
         ajouteEntite(scene["etoiles"], etoile)
-        return
+    
+        
 
 def nouvelle_etoile(position):
     return{
@@ -366,7 +367,7 @@ for image in vaisseau_images:
 prends_pose(vaisseau,"vaisseau_stop")
 ajouteEntite(scene["vaisseau"],vaisseau)
                 
-# print(scene["etoiles"])
+print(scene["etoiles"])
 while True:
     for event in pygame.event.get():
         gerer_touche(event)
@@ -389,6 +390,7 @@ while True:
     delta_pos = get_delta_pos(vaisseau,pygame.time.get_ticks(),force_vaisseau,orientation_vaisseau)
    
     affiche(scene, delta_pos)
+    
     
     # collision_planete()
     pygame.display.flip()
