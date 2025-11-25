@@ -26,6 +26,8 @@ CONSTANTE_GRAV = 0.0001
 #genereation carte
 NBR_PLANETE_MIN = 750
 NBR_PLANETE_MAX=1000
+NOMBRE_ETOILES = 10000
+
 
 ##### Fin constantes #####
 
@@ -35,7 +37,8 @@ dimensions_fenetre = (900,900)  # en pixels
 images_par_seconde = 25
 
 # Initialisation de variables
-
+###optimisation
+DISTANCE_AFFICHAGE = 3*dimensions_fenetre[0]
 # Vaisseau
 position_vaisseau = [dimensions_fenetre[0]/2,dimensions_fenetre[1]/2]
 #coordonnés du vaisseau dans le repere écran
@@ -44,11 +47,11 @@ orientation_vaisseau = 0
 puissance_vaisseau = 1
 masse_vaisseau = 3000
 vitesse_max = 1
-force_freinage = -0.5
 vx = 0
 vy = 0
 ax = 0
 ay = 0
+
 
 t_avant = 0
 v_avant = [0,0]
@@ -66,7 +69,12 @@ pygame.key.set_repeat(10, 10)
 horloge = pygame.time.Clock()
 couleur_fond = NOIR
 
-scene = []
+scene = {
+    "planetes" : [],
+    "entites" : [],
+    "etoiles":[],
+    "vaisseau":[]
+}
 
 police = pygame.font.SysFont('monospace', dimensions_fenetre[1]//50, True)
 
@@ -75,9 +83,6 @@ planetes_images = []
 for image_planete in os.listdir("images/planetes/"):
     planetes_images.append(pygame.image.load('images/planetes/' + image_planete).convert_alpha(fenetre))
 
-
-vaisseau_images =[pygame.image.load('images/vaisseauettein.png').convert_alpha(fenetre),
-                  pygame.image.load('images/vaisseauallume.png').convert_alpha(fenetre)]
 
 # Fonctions
 
@@ -94,58 +99,37 @@ def gerer_touche(event):
         match key:
             case pygame.K_z:
                 #  Le vaisseau avance tant que la touche n'est pas lachée
-                if vaisseau_avance == False and event.type == pygame.KEYDOWN:
-                    vaisseau_avance = True
-                elif vaisseau_avance and event.type == pygame.KEYUP:
-                    vaisseau_avance = False
+                if event.type == pygame.KEYDOWN:
+                    vaisseau_avance = allume_moteur(vaisseau_avance)    
+                elif event.type == pygame.KEYUP:
+                    vaisseau_avance = eteint_moteur(vaisseau_avance)
             case pygame.K_e:
                 stop_vaisseau()
 
-def afficher_vaisseau(position_vaisseau, orientation_vaisseau):
-    if vaisseau_avance:  
-        image_vaisseau = vaisseau_images[1]
-        photo_vaisseau = pygame.transform.scale(image_vaisseau,(RAYON_VAISSEAU*2,RAYON_VAISSEAU*2))
-        #Il faut rajouter un moins sinon l'image du vaisseau tourne dans le mauvais sens
-        photo_vaisseau_r = pygame.transform.rotate(photo_vaisseau,-orientation_vaisseau)
-        position_vaisseau_photo = pygame.Rect(position_vaisseau[0]-RAYON_VAISSEAU,position_vaisseau[1]-RAYON_VAISSEAU,2*RAYON_VAISSEAU,2*RAYON_VAISSEAU)
-        fenetre.blit(photo_vaisseau_r,position_vaisseau_photo)
-    else: 
-        image_vaisseau = vaisseau_images[0]
-        photo_vaisseau = pygame.transform.scale(image_vaisseau,(RAYON_VAISSEAU*2,RAYON_VAISSEAU*2))
-        #Il faut rajouter un moins sinon l'image du vaisseau tourne dans le mauvais sens
-        photo_vaisseau_r = pygame.transform.rotate(photo_vaisseau,-orientation_vaisseau)
-        position_vaisseau_photo = pygame.Rect(position_vaisseau[0]-RAYON_VAISSEAU,position_vaisseau[1]-RAYON_VAISSEAU,2*RAYON_VAISSEAU,2*RAYON_VAISSEAU)
-        fenetre.blit(photo_vaisseau_r,position_vaisseau_photo)      
-    return 
-
-# Dear Arthur, va te faire foutre avec ton code à la chat gpt ça m'a pris trois heures à débuguer
-
 # Fonction qui calcule la différence entra l'ancienne et la nouvelle position du vaisseau (afin de l'appliquer aux élément du jeu)
-def get_delta_pos(temps_maintenant,force_vaisseau,orientation_vaisseau,stop=False):
+def get_delta_pos(entite,temps_maintenant,force_entite,orientation_vaisseau,stop=False):
     global t_avant
     global v_avant
     global position_vaisseau
-    global vx,vy,ax,ay
-    global scene
     
     #cordonnés du vaisseau dans la map
     x0,y0= position_vaisseau
 
-    vx0, vy0 = v_avant
+    vx0, vy0 = entite["vitesse_x_avant"], entite["vitesse_y_avant"]
     if t_avant == 0:
         t_avant = temps_maintenant
-    delta_t = temps_maintenant - t_avant
+    delta_t = temps_maintenant - entite["temps_avant"]
     
     
     angle_rad = math.radians(orientation_vaisseau)
     #récupération de l'accélération du vaisseau
-    a = force_vaisseau/masse_vaisseau
+    a = force_entite/entite["masse"]
     ax = a*math.cos(angle_rad)
     ay = a*math.sin(angle_rad)
             
 
     # calcul gravité pour chaque planete
-    a_planete = calcul_gravite_planete()
+    a_planete = calcul_gravite_planete(entite["masse"])
     ax+=a_planete[0]
     ay+=a_planete[1]
 
@@ -176,13 +160,16 @@ def get_delta_pos(temps_maintenant,force_vaisseau,orientation_vaisseau,stop=Fals
     if abs(x) > abs(LIMITES_JEU[0]) or abs(y) > abs(LIMITES_JEU[1]) or stop:
         vx = 0
         vy = 0
-        v_avant = [vx,vy]
-        t_avant = temps_maintenant
+        entite["vitesse_x_avant"],entite["vitesse_y_avant"] = vx,vy
+        entite["temps_avant"] = temps_maintenant
         position_vaisseau = [x0,y0]
         return [0,0]
     
-    v_avant = [vx,vy]
-    t_avant = temps_maintenant
+
+    entite["vitesse_x_avant"],entite["vitesse_y_avant"] = vx,vy
+    entite["vitesse_x"],entite["vitesse_y"] = vx,vy
+    
+    entite["temps_avant"] = temps_maintenant
     
     # Nouvelle position du vaisseau dans la map
     position_vaisseau = [x,y]
@@ -190,12 +177,11 @@ def get_delta_pos(temps_maintenant,force_vaisseau,orientation_vaisseau,stop=Fals
     # On retourne la différence entre l'ancienne et nouvelle position du vaisseau
     return [x0-x,y0-y]
 
-def calcul_gravite_planete():
+def calcul_gravite_planete(masse_entite):
     a_planete_x = 0
     a_planete_y = 0
-    for entite in scene : 
-            if entite["type"]=="planete":
-                x_planete,y_planete = entite["position"]
+    for planete in scene['planetes']: 
+                x_planete,y_planete = planete["position"]
 
                 #distance au carré entre le vaisseau et la planete choisie
                 delta_x = x_planete-x_vaisseau_ecran
@@ -205,11 +191,11 @@ def calcul_gravite_planete():
                 #on applique la gravité pour un rayon appartenant à [0,rayon_influence]
                 if r2<= RAYON_INFLUENCE**2 and r2>0:
                     r = math.sqrt(r2)
-                    masse_planete = entite["masse"]
+                    masse_planete = planete["masse"]
 
                     #calcul gravité
-                    Force_grav = CONSTANTE_GRAV*masse_planete*masse_vaisseau/r2
-                    a_grav = Force_grav/masse_vaisseau
+                    Force_grav = CONSTANTE_GRAV*masse_planete*masse_entite/r2
+                    a_grav = Force_grav/masse_entite
                     #on additionne la gravité à celle du moteur(+vecteur unitaire pour la direction)
                     a_planete_x+=a_grav*(delta_x/r)
                     a_planete_y+=a_grav*(delta_y/r)
@@ -217,62 +203,55 @@ def calcul_gravite_planete():
 
 
 def stop_vaisseau():
-    get_delta_pos(pygame.time.get_ticks(),0,orientation_vaisseau,True)
+    get_delta_pos(vaisseau,pygame.time.get_ticks(),0,orientation_vaisseau,True)
 
 
 def collision_planete():
     global scene
 
-    for entite in scene:
-        if entite["type"]== "planete":
-            x_planete , y_planete = entite["position"]
-            #distance entre la planete et le vaisseau
-            x,y = position_vaisseau
-            delta_x = x_planete-x_vaisseau_ecran
-            delta_y = y_planete-y_vaisseau_ecran
-            r2 = delta_x**2 + delta_y**2
-            rayon_total = entite["rayon"]+RAYON_VAISSEAU
-            if r2 <= rayon_total**2:
-                pygame.quit()
-                sys.exit()
+    for entite in scene["planetes"]:
+        x_planete , y_planete = entite["position"]
+        #distance entre la planete et le vaisseau
+        
+        delta_x = x_planete-x_vaisseau_ecran
+        delta_y = y_planete-y_vaisseau_ecran
+        r2 = delta_x**2 + delta_y**2
+        rayon_total = entite["rayon"]+RAYON_VAISSEAU
+        if r2 <= rayon_total**2:
+            pygame.quit()
+            sys.exit()
     
 
 def affiche(scene,delta_pos):
-    for entite in scene:
-        entite["position"][0] += delta_pos[0]
-        entite["position"][1] += delta_pos[1]
-        if entite["type"] == "planete":
-            afficher_planete(entite)
-    afficher_vaisseau([dimensions_fenetre[0]/2,dimensions_fenetre[1]/2],orientation_vaisseau)
-
+    for key in scene.keys():
+        for entite in scene[key]:
+            entite["position"][0] += delta_pos[0]
+            entite["position"][1] += delta_pos[1]
+            if key == "planete":
+                afficher_planete(entite)
+            elif key == "vaisseau":
+                afficher_vaisseau()
+            elif key == "etoile":
+                pygame.draw.circle(fenetre,WHITE,(entite["position"][0],entite["position"][1]),1)
     coord_txt= police.render("X:" + str(round(position_vaisseau[0])) + ",Y:" + str(round(position_vaisseau[1])), True, WHITE)
     fenetre.blit(coord_txt, (0,0))
     angle_txt= police.render("Angle:" + str(round(orientation_vaisseau,2)) + " deg", True, WHITE)
     fenetre.blit(angle_txt, (0,15))
-    ax_txt= police.render("Acceleration X:" + str(ax), True, WHITE)
-    fenetre.blit(ax_txt, (0,30))
-    vx_txt= police.render("Vitesse X:" + str(round(vx,2)), True, WHITE)
-    fenetre.blit(vx_txt, (0,45))
-    vy_txt= police.render("Vitesse Y:" + str(round(vy,2)), True, WHITE)
-    fenetre.blit(vy_txt, (0,60))
+    vx_txt= police.render("Vitesse X:" + str(round(vaisseau["vitesse_x"],2)), True, WHITE)
+    fenetre.blit(vx_txt, (0,30))
+    vy_txt= police.render("Vitesse Y:" + str(round(vaisseau["vitesse_y"],2)), True, WHITE)
+    fenetre.blit(vy_txt, (0,45))
 
+def afficher_vaisseau():
+    image_vaisseau = vaisseau["image"]
+    #Il faut rajouter un moins sinon l'image du vaisseau tourne dans le mauvais sens
+    photo_vaisseau_r = pygame.transform.rotate(image_vaisseau,-orientation_vaisseau)
+    position_vaisseau_photo = pygame.Rect(x_vaisseau_ecran-RAYON_VAISSEAU,y_vaisseau_ecran-RAYON_VAISSEAU,2*RAYON_VAISSEAU,2*RAYON_VAISSEAU)
+    fenetre.blit(photo_vaisseau_r,position_vaisseau_photo)
 
-def ajouteEntite(scene, entite):
-    scene.append(entite)
-
-def nouvelle_planete(position,rayon,color,masse,photo):
-    return {
-        'type' : 'planete',
-        'position' : position,
-        'rayon' : rayon,
-        'color' : color,
-        'masse' : masse,
-        'photo' : photo
-
-    }
 
 def afficher_planete(planete):
-    photo_planete = planete['photo']
+    photo_planete = planete['image']
     position = pygame.Rect(planete['position'][0]-planete['rayon'],planete['position'][1]-planete['rayon'],2*planete['rayon'],2*planete['rayon'])
     fenetre.blit(photo_planete,position)
     return
@@ -299,23 +278,90 @@ def generer_carte():
             peut_placer=True
             
             #On vérifie que la nouvelle planete n'est pas trop proche des planetes déjà existantes
-            for planetes_cree in scene : 
-                if planetes_cree["type"]== "planete":
-                    x_planete,y_planete = planetes_cree["position"]
-                    delta_xp = x_gen_planete-x_planete
-                    delta_yp = y_gen_planete-y_planete
-                    dist_planetes2 = delta_xp**2 + delta_yp**2
-                    distance_min = rayon + planetes_cree["rayon"]+DIST_MIN_ENTRE_PLANETE
-                    if dist_planetes2 <distance_min**2:
-                        peut_placer = False
+            for planetes_cree in scene["planetes"] : 
+                x_planete,y_planete = planetes_cree["position"]
+                delta_xp = x_gen_planete-x_planete
+                delta_yp = y_gen_planete-y_planete
+                dist_planetes2 = delta_xp**2 + delta_yp**2
+                distance_min = rayon + planetes_cree["rayon"]+DIST_MIN_ENTRE_PLANETE
+                if dist_planetes2 <distance_min**2:
+                    peut_placer = False
             if peut_placer:
-                planete = nouvelle_planete([x_gen_planete,y_gen_planete],rayon,couleur_planete,masse,photo_planete)
-                ajouteEntite(scene,planete)
+                
+                planete = nouvelle_entite("planete",[x_gen_planete,y_gen_planete],rayon,masse,photo_planete)
+                ajouteEntite(scene["planetes"],planete)
+
+def generer_fondd_etoile():
+    for etoiles in range(NOMBRE_ETOILES):
+        x_gen_etoiles = random.randint(-LIMITES_JEU[0],LIMITES_JEU[0])
+        y_gen_etoiles = random.randint(-LIMITES_JEU[1],LIMITES_JEU[1])
+        etoile = nouvelle_etoile([x_gen_etoiles,y_gen_etoiles])
+        ajouteEntite(scene["etoiles"], etoile)
+        return
+
+def nouvelle_etoile(position):
+    return{
+        "position" : position
+    }
+               
+def nouvelle_entite(type_entite,position_entite,rayon_entite,masse_entite,image=None,orientation_entite=None,vitesse_x_entite=None,vitesse_y_entite=None):
+    return{
+     'type' : type_entite,
+     'position' : position_entite,
+     'image' : image,
+     'orientation':orientation_entite,
+     'rayon' : rayon_entite,
+     'masse' : masse_entite,
+     'vitesse_x':vitesse_x_entite,
+     'vitesse_y':vitesse_y_entite,
+     'vitesse_x_avant':0,
+     'vitesse_y_avant':0,
+     'temps_avant':0,
+     'poses' :{}
+    }
 
 
+def ajoute_pose(entite,nom,image):
+    entite['poses'][nom] = image
+
+def prends_pose(entite,nom_pose):
+    entite['image'] =entite['poses'][nom_pose]
+
+def destroy_entite(scene,entite):
+    if entite in scene:
+        scene.remove(entite)
+
+def ajouteEntite(scene, entite):
+    scene.append(entite)
 ### Boucle de jeu ###
 
 generer_carte()
+generer_fondd_etoile()
+# Création du vaisseau
+vaisseau_images =['vaisseau_avance.png','vaisseau_stop.png']
+
+vaisseau = nouvelle_entite('vaisseau',[x_vaisseau_ecran,y_vaisseau_ecran],RAYON_VAISSEAU,masse_vaisseau,None,orientation_vaisseau,0,0)
+for image in vaisseau_images:
+    loaded_image = pygame.image.load('images/' + image).convert_alpha(fenetre)
+    loaded_image = pygame.transform.scale(loaded_image,(RAYON_VAISSEAU*2,RAYON_VAISSEAU*2))
+    ajoute_pose(vaisseau,image.replace(".png", ""),loaded_image)
+
+prends_pose(vaisseau,"vaisseau_stop")
+ajouteEntite(scene["vaisseau"],vaisseau)
+
+def allume_moteur(vaisseau_avance):
+    
+    if vaisseau_avance==False:
+        vaisseau_avance = True
+        prends_pose(vaisseau,"vaisseau_avance")
+    return vaisseau_avance
+
+def eteint_moteur(vaisseau_avance):
+    
+    vaisseau_avance = False
+    prends_pose(vaisseau,"vaisseau_stop")
+    return vaisseau_avance
+                
 
 while True:
     for event in pygame.event.get():
@@ -333,14 +379,15 @@ while True:
         force_vaisseau = puissance_vaisseau
     else:
         force_vaisseau = 0
-    # force_vaisseau=puissance_vaisseau
 
     fenetre.fill(couleur_fond)
 
-    delta_pos = get_delta_pos(pygame.time.get_ticks(),force_vaisseau,orientation_vaisseau)
-
+    delta_pos = get_delta_pos(vaisseau,pygame.time.get_ticks(),force_vaisseau,orientation_vaisseau)
+   
     affiche(scene, delta_pos)
-    # collision_planete()
+    
+    collision_planete()
+    
     pygame.display.flip()
     horloge.tick(images_par_seconde)
     
