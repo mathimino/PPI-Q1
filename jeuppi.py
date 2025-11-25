@@ -31,7 +31,7 @@ NBR_PLANETE_MAX=1000
 
 # Paramètres
 
-dimensions_fenetre = (1280, 1024)  # en pixels
+dimensions_fenetre = (900,900)  # en pixels
 images_par_seconde = 25
 
 # Initialisation de variables
@@ -165,7 +165,7 @@ def get_delta_pos(temps_maintenant,force_vaisseau,orientation_vaisseau,stop=Fals
             vy = vitesse_max
         else:
             vy = -vitesse_max
-        ax = 0
+        ay = 0
 
 
     #mise a jour position du vaisseau
@@ -178,7 +178,7 @@ def get_delta_pos(temps_maintenant,force_vaisseau,orientation_vaisseau,stop=Fals
         vy = 0
         v_avant = [vx,vy]
         t_avant = temps_maintenant
-        position_vaisseau = [x_vaisseau_ecran,y_vaisseau_ecran]
+        position_vaisseau = [x0,y0]
         return [0,0]
     
     v_avant = [vx,vy]
