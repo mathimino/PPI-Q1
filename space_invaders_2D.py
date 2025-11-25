@@ -38,7 +38,7 @@ images_par_seconde = 25
 
 # Initialisation de variables
 ###optimisation
-DISTANCE_AFFICHAGE = 3*dimensions_fenetre[0]
+DISTANCE_AFFICHAGE = 9*dimensions_fenetre[0]**2
 # Vaisseau
 position_vaisseau = [dimensions_fenetre[0]/2,dimensions_fenetre[1]/2]
 #coordonnés du vaisseau dans le repere écran
@@ -105,6 +105,8 @@ def gerer_touche(event):
                     vaisseau_avance = eteint_moteur(vaisseau_avance)
             case pygame.K_e:
                 stop_vaisseau()
+            case pygame.K_t:
+                tir_cannon()
 
 # Fonction qui calcule la différence entra l'ancienne et la nouvelle position du vaisseau (afin de l'appliquer aux élément du jeu)
 def get_delta_pos(entite,temps_maintenant,force_entite,orientation_vaisseau,stop=False):
@@ -227,13 +229,16 @@ def affiche(scene,delta_pos):
         for entite in scene[key]:
             entite["position"][0] += delta_pos[0]
             entite["position"][1] += delta_pos[1]
-            if key == "planetes":
-                afficher_planete(entite)
-            elif key == "vaisseau":
-                afficher_vaisseau()
-            elif key == "etoiles":
-                # print(scene["etoiles"])
-                pygame.draw.circle(fenetre,WHITE,(entite["position"][0],entite["position"][1]),1)
+            delta_position_x = vaisseau["position"][0]-entite["position"][0]
+            delta_position_y = vaisseau["position"][1]-entite["position"][1]
+            delta_distance = delta_position_x**2 + delta_position_y**2
+            if delta_distance < DISTANCE_AFFICHAGE:
+                if key == "planetes":
+                    afficher_planete(entite)
+                elif key == "vaisseau":
+                    afficher_vaisseau()
+                elif key == "etoiles":
+                    pygame.draw.circle(fenetre,WHITE,(entite["position"][0],entite["position"][1]),1)
 
 
     coord_txt= police.render("X:" + str(round(position_vaisseau[0])) + ",Y:" + str(round(position_vaisseau[1])), True, WHITE)
@@ -296,7 +301,6 @@ def generer_carte():
 
 def generer_fond_etoile():
     for etoiles in range (NOMBRE_ETOILES):
-        print("bonjour")
         x_gen_etoiles = random.randint(-LIMITES_JEU[0],LIMITES_JEU[0])
         y_gen_etoiles = random.randint(-LIMITES_JEU[1],LIMITES_JEU[1])
         etoile = nouvelle_etoile([x_gen_etoiles,y_gen_etoiles])
@@ -366,8 +370,13 @@ for image in vaisseau_images:
 
 prends_pose(vaisseau,"vaisseau_stop")
 ajouteEntite(scene["vaisseau"],vaisseau)
+
+def tir_cannon():
+
+    return
+
+
                 
-print(scene["etoiles"])
 while True:
     for event in pygame.event.get():
         gerer_touche(event)
