@@ -227,12 +227,15 @@ def affiche(scene,delta_pos):
         for entite in scene[key]:
             entite["position"][0] += delta_pos[0]
             entite["position"][1] += delta_pos[1]
-            if key == "planete":
+            if key == "planetes":
                 afficher_planete(entite)
             elif key == "vaisseau":
                 afficher_vaisseau()
-            elif key == "etoile":
+            elif key == "etoiles":
+                # print(scene["etoiles"])
                 pygame.draw.circle(fenetre,WHITE,(entite["position"][0],entite["position"][1]),1)
+
+
     coord_txt= police.render("X:" + str(round(position_vaisseau[0])) + ",Y:" + str(round(position_vaisseau[1])), True, WHITE)
     fenetre.blit(coord_txt, (0,0))
     angle_txt= police.render("Angle:" + str(round(orientation_vaisseau,2)) + " deg", True, WHITE)
@@ -291,8 +294,9 @@ def generer_carte():
                 planete = nouvelle_entite("planete",[x_gen_planete,y_gen_planete],rayon,masse,photo_planete)
                 ajouteEntite(scene["planetes"],planete)
 
-def generer_fondd_etoile():
+def generer_fond_etoile():
     for etoiles in range(NOMBRE_ETOILES):
+        print("prout")
         x_gen_etoiles = random.randint(-LIMITES_JEU[0],LIMITES_JEU[0])
         y_gen_etoiles = random.randint(-LIMITES_JEU[1],LIMITES_JEU[1])
         etoile = nouvelle_etoile([x_gen_etoiles,y_gen_etoiles])
@@ -333,21 +337,6 @@ def destroy_entite(scene,entite):
 
 def ajouteEntite(scene, entite):
     scene.append(entite)
-### Boucle de jeu ###
-
-generer_carte()
-generer_fondd_etoile()
-# Création du vaisseau
-vaisseau_images =['vaisseau_avance.png','vaisseau_stop.png']
-
-vaisseau = nouvelle_entite('vaisseau',[x_vaisseau_ecran,y_vaisseau_ecran],RAYON_VAISSEAU,masse_vaisseau,None,orientation_vaisseau,0,0)
-for image in vaisseau_images:
-    loaded_image = pygame.image.load('images/' + image).convert_alpha(fenetre)
-    loaded_image = pygame.transform.scale(loaded_image,(RAYON_VAISSEAU*2,RAYON_VAISSEAU*2))
-    ajoute_pose(vaisseau,image.replace(".png", ""),loaded_image)
-
-prends_pose(vaisseau,"vaisseau_stop")
-ajouteEntite(scene["vaisseau"],vaisseau)
 
 def allume_moteur(vaisseau_avance):
     
@@ -361,8 +350,23 @@ def eteint_moteur(vaisseau_avance):
     vaisseau_avance = False
     prends_pose(vaisseau,"vaisseau_stop")
     return vaisseau_avance
-                
+### Boucle de jeu ###
 
+generer_carte()
+generer_fond_etoile()
+# Création du vaisseau
+vaisseau_images =['vaisseau_avance.png','vaisseau_stop.png']
+
+vaisseau = nouvelle_entite('vaisseau',[x_vaisseau_ecran,y_vaisseau_ecran],RAYON_VAISSEAU,masse_vaisseau,None,orientation_vaisseau,0,0)
+for image in vaisseau_images:
+    loaded_image = pygame.image.load('images/' + image).convert_alpha(fenetre)
+    loaded_image = pygame.transform.scale(loaded_image,(RAYON_VAISSEAU*2,RAYON_VAISSEAU*2))
+    ajoute_pose(vaisseau,image.replace(".png", ""),loaded_image)
+
+prends_pose(vaisseau,"vaisseau_stop")
+ajouteEntite(scene["vaisseau"],vaisseau)
+                
+# print(scene["etoiles"])
 while True:
     for event in pygame.event.get():
         gerer_touche(event)
@@ -386,8 +390,7 @@ while True:
    
     affiche(scene, delta_pos)
     
-    collision_planete()
-    
+    # collision_planete()
     pygame.display.flip()
     horloge.tick(images_par_seconde)
     
