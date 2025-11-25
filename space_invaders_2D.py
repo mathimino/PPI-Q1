@@ -17,6 +17,7 @@ RAYON_VAISSEAU = 20
 RAYON_PLANETE_MIN=100
 RAYON_PLANETE_MAX=300
 DIST_MIN_ENTRE_PLANETE = 300
+VITESSE_MISSILE_INIT = [5,5]
 
 LIMITES_JEU = [10000,10000]
 
@@ -39,6 +40,8 @@ images_par_seconde = 25
 # Initialisation de variables
 ###optimisation
 DISTANCE_AFFICHAGE = 9*dimensions_fenetre[0]**2
+temps_avant_recharge = 0
+delai_recharge = 200
 # Vaisseau
 position_vaisseau = [dimensions_fenetre[0]/2,dimensions_fenetre[1]/2]
 #coordonnés du vaisseau dans le repere écran
@@ -73,6 +76,7 @@ scene = {
     "etoiles":[],
     "planetes" : [],
     "entites" : [],
+    "missiles":[],
     "vaisseau":[]
 }
 
@@ -235,10 +239,12 @@ def affiche(scene,delta_pos):
             if delta_distance < DISTANCE_AFFICHAGE:
                 if key == "planetes":
                     afficher_planete(entite)
+                
                 elif key == "vaisseau":
                     afficher_vaisseau()
                 elif key == "etoiles":
                     pygame.draw.circle(fenetre,WHITE,(entite["position"][0],entite["position"][1]),1)
+                
 
 
     coord_txt= police.render("X:" + str(round(position_vaisseau[0])) + ",Y:" + str(round(position_vaisseau[1])), True, WHITE)
@@ -372,12 +378,20 @@ prends_pose(vaisseau,"vaisseau_stop")
 ajouteEntite(scene["vaisseau"],vaisseau)
 
 def tir_cannon():
-
+    global temps_avant_recharge
+    delai = temps_maintenant - temps_avant_recharge
+    images_missile = pygame.image.load('images/missile.png').convert_alpha(fenetre)
+    images_missile = pygame.transform.scale(images_missile,(RAYON_VAISSEAU*2,RAYON_VAISSEAU*2))
+    missile = nouvelle_entite('missiles',[x_vaisseau_ecran,y_vaisseau_ecran],RAYON_VAISSEAU,masse_vaisseau,images_missile)
+    ajouteEntite(scene["missiles"],missile)
     return
+
+
 
 
                 
 while True:
+    temps_maintenant = pygame.time.get_ticks()
     for event in pygame.event.get():
         gerer_touche(event)
 
