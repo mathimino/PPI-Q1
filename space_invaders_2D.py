@@ -231,17 +231,22 @@ def collision_planete():
 def affiche(scene,delta_pos):
     for key in scene.keys():
         for entite in scene[key]:
+            
             entite["position"][0] += delta_pos[0]
             entite["position"][1] += delta_pos[1]
-            delta_position_x = vaisseau["position"][0]-entite["position"][0]
-            delta_position_y = vaisseau["position"][1]-entite["position"][1]
-            delta_distance = delta_position_x**2 + delta_position_y**2
-            if delta_distance < DISTANCE_AFFICHAGE:
+            rayon = 0
+            if "rayon" in entite:
+                rayon = entite["rayon"]
+
+            if key == "vaisseau":
+                afficher_vaisseau()
+
+            #Culling
+            distance_entite_x = abs(entite["position"][0] - x_vaisseau_ecran)-rayon
+            distance_entite_y = abs(entite["position"][1] - y_vaisseau_ecran) - rayon
+            if   distance_entite_x <= distance_bord_ecran_x and distance_entite_y <= distance_bord_ecran_y:
                 if key == "planetes":
                     afficher_planete(entite)
-                
-                elif key == "vaisseau":
-                    afficher_vaisseau()
                 elif key == "etoiles":
                     pygame.draw.circle(fenetre,WHITE,(entite["position"][0],entite["position"][1]),1)
                 
@@ -376,6 +381,9 @@ for image in vaisseau_images:
 
 prends_pose(vaisseau,"vaisseau_stop")
 ajouteEntite(scene["vaisseau"],vaisseau)
+
+distance_bord_ecran_x = abs(x_vaisseau_ecran+RAYON_VAISSEAU)
+distance_bord_ecran_y = abs(y_vaisseau_ecran+RAYON_VAISSEAU)
 
 def tir_cannon():
     global temps_avant_recharge
