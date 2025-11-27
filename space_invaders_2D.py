@@ -42,24 +42,18 @@ images_par_seconde = 25
 DISTANCE_AFFICHAGE = 9*dimensions_fenetre[0]**2
 temps_avant_recharge = 0
 delai_recharge = 200
-# Vaisseau
+# player
 position_player = [dimensions_fenetre[0]/2,dimensions_fenetre[1]/2]
-#coordonnés du vaisseau dans le repere écran
+#coordonnés du player dans le repere écran
 x_player_ecran,y_player_ecran = dimensions_fenetre[0]/2,dimensions_fenetre[1]/2
 orientation_player = 0
 puissance_player = 1
 masse_player = 3000
-vitesse_max = 1
-vx = 0
-vy = 0
-ax = 0
-ay = 0
-
-
-t_avant = 0
-v_avant = [0,0]
-
 player_avance = False
+vitesse_max_player = 1
+
+#Enemis
+vitesse_max_enemis = 0.5
 
 # Initialisation
 
@@ -103,7 +97,7 @@ def gerer_touche(event):
         key = event.key
         match key:
             case pygame.K_z:
-                #  Le vaisseau avance tant que la touche n'est pas lachée
+                #  Le player avance tant que la touche n'est pas lachée
                 if event.type == pygame.KEYDOWN:
                     player_avance = allume_moteur(player_avance)    
                 elif event.type == pygame.KEYUP:
@@ -113,23 +107,21 @@ def gerer_touche(event):
             case pygame.K_t:
                 tir_cannon()
 
-# Fonction qui calcule la différence entra l'ancienne et la nouvelle position du vaisseau (afin de l'appliquer aux élément du jeu)
-def get_delta_pos(entite,temps_maintenant,force_entite,orientation_player,stop=False):
-    global t_avant
-    global v_avant
+# Fonction qui calcule la différence entra l'ancienne et la nouvelle position du player (afin de l'appliquer aux élément du jeu)
+def get_delta_pos(entite,temps_maintenant,force_entite,orientation,stop=False):
+    
     global position_player
     
-    #cordonnés du vaisseau dans la map
+    #cordonnés du player dans la map
     x0,y0= position_player
 
     vx0, vy0 = entite["vitesse_x_avant"], entite["vitesse_y_avant"]
-    if t_avant == 0:
-        t_avant = temps_maintenant
+
     delta_t = temps_maintenant - entite["temps_avant"]
     
     
-    angle_rad = math.radians(orientation_player)
-    #récupération de l'accélération du vaisseau
+    angle_rad = math.radians(orientation)
+    #récupération de l'accélération du player
     a = force_entite/entite["masse"]
     ax = a*math.cos(angle_rad)
     ay = a*math.sin(angle_rad)
@@ -145,6 +137,7 @@ def get_delta_pos(entite,temps_maintenant,force_entite,orientation_player,stop=F
     vy = vy0+ay*delta_t
 
     # Vitesse max
+    vitesse_max = entite["vitesse_max"]
     if abs(vx)>vitesse_max:
         if vx > 0:
             vx = vitesse_max
@@ -159,11 +152,11 @@ def get_delta_pos(entite,temps_maintenant,force_entite,orientation_player,stop=F
         ay = 0
 
 
-    #mise a jour position du vaisseau
+    #mise a jour position du player
     x =x0 + vx0*delta_t + (ax*delta_t**2)/2
     y =y0 + vy0*delta_t + (ay*delta_t**2)/2
 
-    #gestion des colisions du vaisseau avec la limite de la map
+    #gestion des colisions du player avec la limite de la map
     if abs(x) > abs(LIMITES_JEU[0]) or abs(y) > abs(LIMITES_JEU[1]) or stop:
         vx = 0
         vy = 0
@@ -178,10 +171,10 @@ def get_delta_pos(entite,temps_maintenant,force_entite,orientation_player,stop=F
     
     entite["temps_avant"] = temps_maintenant
     
-    # Nouvelle position du vaisseau dans la map
+    # Nouvelle position du player dans la map
     position_player = [x,y]
 
-    # On retourne la différence entre l'ancienne et nouvelle position du vaisseau
+    # On retourne la différence entre l'ancienne et nouvelle position du player
     return [x0-x,y0-y]
 
 def calcul_gravite_planete(masse_entite):
@@ -190,7 +183,7 @@ def calcul_gravite_planete(masse_entite):
     for planete in scene['planetes']: 
                 x_planete,y_planete = planete["position"]
 
-                #distance au carré entre le vaisseau et la planete choisie
+                #distance au carré entre le player et la planete choisie
                 delta_x = x_planete-x_player_ecran
                 delta_y = y_planete-y_player_ecran
                 r2 = delta_x**2 + delta_y**2
@@ -218,7 +211,7 @@ def collision_planete():
 
     for entite in scene["planetes"]:
         x_planete , y_planete = entite["position"]
-        #distance entre la planete et le vaisseau
+        #distance entre la planete et le player
         
         delta_x = x_planete-x_player_ecran
         delta_y = y_planete-y_player_ecran
@@ -240,7 +233,6 @@ def affiche(scene,delta_pos):
                 rayon = entite["rayon"]
 
             if key == "player":
-                print("bite")
                 afficher_vaisseau(player)
 
             #Culling
@@ -268,9 +260,9 @@ def afficher_vaisseau(vaisseau):
     x,y = vaisseau["position"]
     if vaisseau["type"] == "player":
         x,y = x_player_ecran,y_player_ecran
-    
+
     #Il faut rajouter un moins sinon l'image du vaisseau tourne dans le mauvais sens
-    photo_vaisseau_r = pygame.transform.rotate(vaisseau["image"],-orientation_player)
+    photo_vaisseau_r = pygame.transform.rotate(vaisseau["image"],-vaisseau["orientation"])
     position_player_photo = pygame.Rect(x-vaisseau["rayon"],y-vaisseau["rayon"],2*vaisseau["rayon"],2*vaisseau["rayon"])
     fenetre.blit(photo_vaisseau_r,position_player_photo)
 
@@ -330,7 +322,7 @@ def nouvelle_etoile(position):
         "position" : position
     }
                
-def nouvelle_entite(type_entite,position_entite,rayon_entite,masse_entite,image=None,orientation_entite=None,vitesse_x_entite=None,vitesse_y_entite=None):
+def nouvelle_entite(type_entite,position_entite,rayon_entite,masse_entite,image=None,orientation_entite=None,vitesse_x_entite=None,vitesse_y_entite=None,vitesse_max=1):
     return{
      'type' : type_entite,
      'position' : position_entite,
@@ -343,7 +335,8 @@ def nouvelle_entite(type_entite,position_entite,rayon_entite,masse_entite,image=
      'vitesse_x_avant':0,
      'vitesse_y_avant':0,
      'temps_avant':0,
-     'poses' :{}
+     'poses' :{},
+     'vitesse_max' : vitesse_max
     }
 
 
@@ -400,13 +393,23 @@ def tir_cannon():
     return
 
 
+enemi = nouvelle_entite("enemi",[500,500],RAYON_PLAYER,3000,None,0,None,None,0.5)
 image_enemi = pygame.image.load("images/enemis/ship.png").convert_alpha(fenetre)
-
-enemi = nouvelle_entite("enemi",[500,500],RAYON_PLAYER,3000,0)
 image_enemi = pygame.transform.scale(image_enemi,(enemi["rayon"]*2,enemi["rayon"]*2))
 ajoute_pose(enemi,"ship",image_enemi)
 prends_pose(enemi,"ship")
 ajouteEntite(scene["enemis"],enemi)
+
+def ai_enemi(enemi):
+    xp,yp = x_player_ecran,y_player_ecran
+    delta_x = xp-e["position"][0]
+    delta_y = yp-e["position"][1]
+    orientation_enemi = math.degrees(math.atan2(delta_y,delta_x))%360
+    e["orientation"] = orientation_enemi
+    delta_pos = get_delta_pos(e,pygame.time.get_ticks(),0.2,orientation_enemi)
+    e["position"][0] += delta_pos[0]
+    e["position"][1] += delta_pos[1]
+    print(e["position"])
 
 ### Boucle de jeu ###
 while True:
@@ -422,7 +425,6 @@ while True:
     angle_rad = math.atan2(delta_mouse_y,delta_mouse_x)
     orientation_player = (math.degrees(angle_rad))%360
     player["orientation"] = orientation_player
-    print(player["orientation"])
 
     if player_avance:
         force_player = puissance_player
@@ -431,8 +433,12 @@ while True:
 
     fenetre.fill(couleur_fond)
 
+    for e in scene["enemis"]:
+        ai_enemi(e)
+
     delta_pos = get_delta_pos(player,pygame.time.get_ticks(),force_player,orientation_player)
-   
+    
+
     affiche(scene, delta_pos)
     
     
