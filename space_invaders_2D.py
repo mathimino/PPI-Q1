@@ -55,7 +55,7 @@ player_avance = False
 vitesse_max_player = 1
 
 #Enemis
-vitesse_max_enemis = 0.1
+vitesse_max_enemis = 0.01
 
 # Initialisation
 
@@ -132,9 +132,9 @@ def get_delta_pos(entite,temps_maintenant,force_entite,orientation,stop=False):
             
 
     # calcul gravité pour chaque planete
-    a_planete = calcul_gravite_planete(entite["masse"])
-    ax+=a_planete[0]
-    ay+=a_planete[1]
+    # a_planete = calcul_gravite_planete(entite["masse"])
+    # ax+=a_planete[0]
+    # ay+=a_planete[1]
 
     #mise a jour vitesse
     vx = vx0+ax*delta_t
@@ -214,20 +214,7 @@ def stop_vaisseau(vaisseau):
     get_delta_pos(vaisseau,pygame.time.get_ticks(),0,orientation_player,True)
 
 
-def collision_planetes(entite):
-    global scene
-    x,y = entite["position"]
-    for planete in scene["planetes"]:
-        x_planete , y_planete = planete["position"]
-        #distance entre la planete et le player
-        
-        delta_x = x_planete-x_player_ecran
-        delta_y = y_planete-y_player_ecran
-        r2 = delta_x**2 + delta_y**2
-        rayon_total = planete["rayon"]+RAYON_PLAYER
-        if r2 <= rayon_total**2:
-            pygame.quit()
-            sys.exit()
+
     
 
 def affiche(scene,delta_pos):
@@ -344,7 +331,8 @@ def nouvelle_entite(type_entite,position_entite,rayon_entite,masse_entite,image=
      'vitesse_y_avant':0,
      'temps_avant':0,
      'poses' :{},
-     'vitesse_max' : vitesse_max
+     'vitesse_max' : vitesse_max,
+     'avance': False
     }
 
 
@@ -410,11 +398,43 @@ def ai_enemi(enemi):
     xp,yp = x_player_ecran,y_player_ecran
     delta_x = xp-enemi["position"][0]
     delta_y = yp-enemi["position"][1]
+    
     orientation_enemi = math.degrees(math.atan2(delta_y,delta_x))%360
+
+    distance_planete_proche = None
+    list_distances_planetes = collision_planetes(enemi)
+    # si list_distances_planetes n'est pas vide
+    if len(list_distances_planetes)>=1:
+        distance_planete_proche = min(list_distances_planetes)
+
+        if distance_planete_proche <=200:
+            orientation_enemi = (orientation_enemi-180)%360
+
     enemi["orientation"] = orientation_enemi
-    delta_pos = get_delta_pos(enemi,pygame.time.get_ticks(),0.2,orientation_enemi)
-    enemi["position"][0] += delta_pos[0]
-    enemi["position"][1] += delta_pos[1]
+    delta_pos = get_delta_pos(enemi,pygame.time.get_ticks(),0.1,orientation_enemi)
+    enemi["position"][0] -= delta_pos[0]
+    enemi["position"][1] -= delta_pos[1]
+
+
+def collision_planetes(entite):
+    global scene
+    x,y = entite["position"]
+    print(x,y)
+    list_distances_planetes = []
+    for planete in scene["planetes"]:
+        x_planete , y_planete = planete["position"]
+        #distance entre la planete et le player
+        delta_x = x_planete-x
+        delta_y = y_planete-y
+        r2 = delta_x**2 + delta_y**2
+        rayon_total = planete["rayon"]+RAYON_PLAYER
+        if entite["type"] == "enemi":#and r2<=RAYON_INFLUENCE
+            #la distance au carré entre le bord de la planete et le centre de l'entite
+            list_distances_planetes.append(r2-(rayon_total**2))
+        if entite["type"] == "player" and r2 <= rayon_total**2:
+            pygame.quit()
+            sys.exit()
+    return list_distances_planetes
 
 
 generer_carte()
@@ -450,7 +470,7 @@ while True:
 
     affiche(scene, delta_pos)
     
-    collision_planetes(player)
+    # collision_planetes(player)
     pygame.display.flip()
     horloge.tick(images_par_seconde)
     
