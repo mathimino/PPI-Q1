@@ -55,7 +55,7 @@ player_avance = False
 vitesse_max_player = 1
 
 #Enemis
-vitesse_max_enemis = 0.01
+vitesse_max_enemis = 0.1
 
 # Initialisation
 
@@ -108,6 +108,13 @@ def gerer_touche(event):
                 stop_vaisseau(player)
             case pygame.K_t:
                 tir_cannon()
+            case pygame.K_a:
+                if event.type == pygame.KEYDOWN:
+                    if enemi["avance"]:
+                        enemi["avance"] = False
+                    else:
+                        enemi["avance"] = True
+                    print("Enemi avance = " + str(enemi["avance"]))
 
 # Fonction qui calcule la différence entra l'ancienne et la nouvelle position du player (afin de l'appliquer aux élément du jeu)
 def get_delta_pos(entite,temps_maintenant,force_entite,orientation,stop=False):
@@ -396,45 +403,81 @@ ajouteEntite(scene["enemis"],enemi)
 
 def ai_enemi(enemi):
     xp,yp = x_player_ecran,y_player_ecran
-    delta_x = xp-enemi["position"][0]
-    delta_y = yp-enemi["position"][1]
+    delta_x_player = xp-enemi["position"][0]
+    delta_y_player = yp-enemi["position"][1]
+    distance2_player = delta_x_player**2 + delta_y_player**2
+    force_enemi = 0
+    enemi["vitesse_max"] = 0
+
+    if distance2_player >= 300**2:
+        enemi["avance"] = True
+    else:
+        enemi["avance"] = False
     
-    orientation_enemi = math.degrees(math.atan2(delta_y,delta_x))%360
+    orientation_enemi = math.degrees(math.atan2(delta_y_player,delta_x_player))%360
 
-    distance_planete_proche = None
-    list_distances_planetes = collision_planetes(enemi)
-    # si list_distances_planetes n'est pas vide
-    if len(list_distances_planetes)>=1:
-        distance_planete_proche = min(list_distances_planetes)
+    #Planete la plus proche de l'enemi
+    index_planete =  collision_planetes(enemi)
+    planete = scene["planetes"][index_planete]
 
-        if distance_planete_proche <=200:
-            orientation_enemi = (orientation_enemi-180)%360
+    x_planete, y_planete = planete["position"]
+
+    delta_x_planete = x_planete-enemi["position"][0]
+    delta_y_planete = y_planete-enemi["position"][0]
+
+    #Distance au carré entre la planete la plus proche et l'enemi (EST NEGATIVE SI DANS LA PLANETE)
+    distance2_planete = delta_x_planete**2 + delta_y_planete**2 -(planete["rayon"]+RAYON_PLAYER)**2
+    if distance2_planete<=200**2:
+        enemi["avance"] = True
+        orientation_enemi = ((math.degrees(math.atan2(delta_y_planete,delta_x_planete)))%360)-180
+        # orientation_enemi = (orientation_enemi-180)%360
+        force_enemi= 10
+        enemi["vitesse_max"] = 1
+        # print("force_enemi = " + str(force_enemi))
+        # print("enemi vitesse X = " + str(enemi["vitesse_x"]))
+        # print("enemi vitesse Y = " + str(enemi["vitesse_y"]))
 
     enemi["orientation"] = orientation_enemi
-    delta_pos = get_delta_pos(enemi,pygame.time.get_ticks(),0.1,orientation_enemi)
+    delta_pos=[0,0]
+    if enemi["avance"]:
+        force_enemi = 0.1
+    else:
+        force_enemi = 0
+    delta_pos = get_delta_pos(enemi,pygame.time.get_ticks(),force_enemi,orientation_enemi)
+    # print("Enemi avance = " + str(enemi["avance"]))
     enemi["position"][0] -= delta_pos[0]
     enemi["position"][1] -= delta_pos[1]
+    print(enemi["position"])
 
 
 def collision_planetes(entite):
-    global scene
-    x,y = entite["position"]
-    print(x,y)
-    list_distances_planetes = []
-    for planete in scene["planetes"]:
+    xp,yp = entite["position"]
+    list_distances2_planetes = []
+    index_planete = 0
+    index_planete_proche = 0
+    min_dist = float(math.inf)
+    for index, planete in enumerate(scene["planetes"]):
         x_planete , y_planete = planete["position"]
-        #distance entre la planete et le player
-        delta_x = x_planete-x
-        delta_y = y_planete-y
+        #distance entre la planete et l'entite
+        delta_x = x_planete-xp
+        delta_y = y_planete-yp
         r2 = delta_x**2 + delta_y**2
         rayon_total = planete["rayon"]+RAYON_PLAYER
-        if entite["type"] == "enemi":#and r2<=RAYON_INFLUENCE
-            #la distance au carré entre le bord de la planete et le centre de l'entite
-            list_distances_planetes.append(r2-(rayon_total**2))
+        if entite["type"] == "enemi":
+            #la distance au carré entre le bord de la planete et le bord de l'entite
+            distance2_planete = r2-(rayon_total**2)
+            if distance2_planete < min_dist:
+                min_dist = distance2_planete
+                index_planete_proche = index
+        index_planete+=1
         if entite["type"] == "player" and r2 <= rayon_total**2:
             pygame.quit()
             sys.exit()
-    return list_distances_planetes
+        print("index = " + str(index_planete))
+    #retourne l'index dans scene["planetes"] de la planete la plus proche de l'entite
+    print("len = "+ str(len(scene["planetes"])))
+    print("index final = " + str(index_planete_proche))
+    return index_planete_proche
 
 
 generer_carte()
