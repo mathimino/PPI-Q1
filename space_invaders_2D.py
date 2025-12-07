@@ -46,7 +46,8 @@ attente =0
 temps_anim_mort =10
 pose =0
 FACTEUR_GRAVITE_MISSILE = 3
-
+global enjeu
+enjeu = False
 
 
 # player
@@ -171,31 +172,38 @@ def estEnAnimation(entite):
 def gerer_touche(event):
     global player_avance
     global orientation_player
-
-
+    global enjeu
     if event.type == pygame.QUIT:
             pygame.quit()
             sys.exit()
     if event.type == pygame.KEYDOWN or event.type == pygame.KEYUP:
-        key = event.key
-        match key:
-            case pygame.K_z:
-                #  Le player avance tant que la touche n'est pas lachée
-                if event.type == pygame.KEYDOWN:
-                    player_avance = allume_moteur(player_avance)    
-                elif event.type == pygame.KEYUP:
-                    player_avance = eteint_moteur(player_avance)
-            case pygame.K_e:
-                stop_vaisseau(player)
-            case pygame.K_t:
-                tir_cannon(temps_maintenant,player)
-            case pygame.K_a:
-                if event.type == pygame.KEYDOWN:
-                    if enemi["avance"]:
-                        enemi["avance"] = False
-                    else:
-                        enemi["avance"] = True
-                    #print("Enemi avance = " + str(enemi["avance"]))
+        if enjeu:
+            key = event.key
+            match key:
+                case pygame.K_z:
+                    #  Le player avance tant que la touche n'est pas lachée
+                    if event.type == pygame.KEYDOWN:
+                        player_avance = allume_moteur(player_avance)    
+                    elif event.type == pygame.KEYUP:
+                        player_avance = eteint_moteur(player_avance)
+                case pygame.K_e:
+                    stop_vaisseau(player)
+                case pygame.K_t:
+                    tir_cannon(temps_maintenant,player)
+                case pygame.K_a:
+                    if event.type == pygame.KEYDOWN:
+                        if enemi["avance"]:
+                            enemi["avance"] = False
+                        else:
+                            enemi["avance"] = True
+                        #print("Enemi avance = " + str(enemi["avance"]))
+        if not enjeu:
+            enjeu = True
+            temps_reset =pygame.time.get_ticks()
+            for key in scene:
+                for entite in scene[key]:
+                    entite["temps_avant"]=temps_reset
+            dernier_temps_missiles = temps_reset
 
 # Fonction qui calcule la différence entra l'ancienne et la nouvelle position du player (afin de l'appliquer aux élément du jeu)
 def get_delta_pos(entite,temps_maintenant,force_entite,orientation,stop=False):
@@ -641,41 +649,32 @@ generer_fond_etoile()
 dernier_temps_missiles = pygame.time.get_ticks()
 ### Boucle de jeu ###
 while True:
-    temps_maintenant = pygame.time.get_ticks()
-    delta_t_missile = temps_maintenant-dernier_temps_missiles
-    dernier_temps_missiles = pygame.time.get_ticks()
-
     for event in pygame.event.get():
-        gerer_touche(event)
-
-
-    mouse_x,mouse_y = pygame.mouse.get_pos()
-    delta_mouse_x, delta_mouse_y = mouse_x-x_player_ecran, mouse_y-y_player_ecran
-
-    # Calcul du nouvel angle du vaisseau par rapport à la position de la souris (modulo 360)
-    angle_rad = math.atan2(delta_mouse_y,delta_mouse_x)
-    orientation_player = (math.degrees(angle_rad))%360
-    player["orientation"] = orientation_player
-
-    if player_avance:
-        force_player = puissance_player
-    else:
-        force_player = 0
-
-    fenetre.fill(couleur_fond)
-
-    for enemi in scene["enemis"]:
-        ai_enemi(enemi)
-    
-    mise_a_jour_etat_missile(delta_t_missile)
-    
-
-    delta_pos = get_delta_pos(player,pygame.time.get_ticks(),force_player,orientation_player)
-    
-
-    affiche(scene, delta_pos)
-    
-    # collision_planetes(player)
+            gerer_touche(event)
+    if enjeu:
+        temps_maintenant = pygame.time.get_ticks()
+        delta_t_missile = temps_maintenant-dernier_temps_missiles
+        dernier_temps_missiles = pygame.time.get_ticks()
+        mouse_x,mouse_y = pygame.mouse.get_pos()
+        delta_mouse_x, delta_mouse_y = mouse_x-x_player_ecran, mouse_y-y_player_ecran
+         # Calcul du nouvel angle du vaisseau par rapport à la position de la souris (modulo 360)
+        angle_rad = math.atan2(delta_mouse_y,delta_mouse_x)
+        orientation_player = (math.degrees(angle_rad))%360
+        player["orientation"] = orientation_player
+        if player_avance:
+            force_player = puissance_player
+        else:
+            force_player = 0
+        fenetre.fill(couleur_fond)
+        for enemi in scene["enemis"]:
+            ai_enemi(enemi)
+        mise_a_jour_etat_missile(delta_t_missile)
+        delta_pos = get_delta_pos(player,pygame.time.get_ticks(),force_player,orientation_player)
+        affiche(scene, delta_pos)
+        # collision_planetes(player)
+    if not enjeu:
+        print("pas en jeu")
+        fenetre.fill(couleur_fond)
     pygame.display.flip()
     horloge.tick(images_par_seconde)
     
