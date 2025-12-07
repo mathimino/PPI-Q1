@@ -300,7 +300,7 @@ def calcul_gravite_planete(entite):
                         #on additionne la gravité à celle du moteur(+vecteur unitaire pour la direction)
                         a_planete_x+=a_grav*(delta_x/r)
                         a_planete_y+=a_grav*(delta_y/r)
-        return 0,0
+        return a_planete_x,a_planete_y
 
 
 def stop_vaisseau(vaisseau):
