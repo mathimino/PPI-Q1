@@ -28,6 +28,9 @@ CONSTANTE_GRAV = 0.0001
 NBR_PLANETE_MIN = 750
 NBR_PLANETE_MAX=1000
 NOMBRE_ETOILES = 10000
+nombre_vies = 3
+NOMBRE_VIES_INIT=3
+highscore = 1000000
 
 
 ##### Fin constantes #####
@@ -96,6 +99,11 @@ for nom_fichier in ['missile_vie.png','missile_mort_anim_1.png','missile_mort_an
     image_missile = pygame.transform.scale(image_missile,(RAYON_PLAYER,RAYON_PLAYER))
     nom_pose = nom_fichier.replace('.png', '')
     missile_image[nom_pose] = image_missile
+images_menu = pygame.image.load('images/menu_fond.png').convert_alpha(fenetre)
+image_titre = pygame.image.load('images/menu_titre.png').convert_alpha(fenetre)
+image_titre= pygame.transform.scale(image_titre,(dimensions_fenetre[0],dimensions_fenetre[1]/2))
+image_coeur = pygame.image.load('images/vie_joueur.png').convert_alpha(fenetre)
+image_coeur= pygame.transform.scale(image_coeur,(dimensions_fenetre[0]/10,dimensions_fenetre[0]/10))
 
 
 # Fonctions
@@ -197,13 +205,13 @@ def gerer_touche(event):
                         else:
                             enemi["avance"] = True
                         #print("Enemi avance = " + str(enemi["avance"]))
-        if not enjeu:
-            enjeu = True
-            temps_reset =pygame.time.get_ticks()
-            for key in scene:
-                for entite in scene[key]:
-                    entite["temps_avant"]=temps_reset
-            dernier_temps_missiles = temps_reset
+        # if not enjeu:
+        #     enjeu = True
+        #     temps_reset =pygame.time.get_ticks()
+        #     for key in scene:
+        #         for entite in scene[key]:
+        #             entite["temps_avant"]=temps_reset
+        #     dernier_temps_missiles = temps_reset
 
 # Fonction qui calcule la différence entra l'ancienne et la nouvelle position du player (afin de l'appliquer aux élément du jeu)
 def get_delta_pos(entite,temps_maintenant,force_entite,orientation,stop=False):
@@ -557,6 +565,26 @@ def mise_a_jour_etat_missile(delta_t):
         missile["duree_vie"]-=1
         autodestruction_missile(missile)
 
+def afficher_menu():
+    fenetre.fill(couleur_fond)
+    fenetre.blit(images_menu,(0,0))
+    fenetre.blit(image_titre,(10,50))
+    temps_titre = pygame.time.get_ticks()
+    texte_meuilleur_score = police.render(("HIGHSCORE :"),True,WHITE)
+    texte_score = police.render(str(round(highscore)),True,WHITE)
+    texte_meuilleur_score = pygame.transform.scale(texte_meuilleur_score,(dimensions_fenetre[0]/4,dimensions_fenetre[1]/28))
+    if ((temps_titre//1000)%2):
+        commenceJouer= police.render(("Appuyez pour commencer"), True, WHITE)
+        commenceJouer = pygame.transform.scale(commenceJouer,(dimensions_fenetre[0]/2,dimensions_fenetre[1]/14))
+        fenetre.blit(commenceJouer,(dimensions_fenetre[0]/4,300))
+        if nombre_vies<NOMBRE_VIES_INIT:
+            fenetre.blit(texte_meuilleur_score,(3*dimensions_fenetre[0]/8,20))
+            fenetre.blit(texte_score,(5*dimensions_fenetre[0]/8,27))
+        
+    for i in range(nombre_vies):
+        fenetre.blit(image_coeur,(dimensions_fenetre[0]/2-(nombre_vies/2)*dimensions_fenetre[0]/10+i*dimensions_fenetre[0]/10,dimensions_fenetre[1]-200))
+
+
 
 enemi = nouvelle_entite("enemi",[500,500],RAYON_PLAYER,3000,None,0,None,None,0.5)
 image_enemi = pygame.image.load("images/enemis/ship.png").convert_alpha(fenetre)
@@ -644,6 +672,7 @@ def collision_planetes(entite):
     return index_planete_proche
 
 
+
 generer_carte()
 generer_fond_etoile()
 dernier_temps_missiles = pygame.time.get_ticks()
@@ -673,8 +702,7 @@ while True:
         affiche(scene, delta_pos)
         # collision_planetes(player)
     if not enjeu:
-        print("pas en jeu")
-        fenetre.fill(couleur_fond)
+        afficher_menu()    
     pygame.display.flip()
     horloge.tick(images_par_seconde)
     
