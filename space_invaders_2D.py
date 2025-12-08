@@ -205,13 +205,13 @@ def gerer_touche(event):
                         else:
                             enemi["avance"] = True
                         #print("Enemi avance = " + str(enemi["avance"]))
-        # if not enjeu:
-        #     enjeu = True
-        #     temps_reset =pygame.time.get_ticks()
-        #     for key in scene:
-        #         for entite in scene[key]:
-        #             entite["temps_avant"]=temps_reset
-        #     dernier_temps_missiles = temps_reset
+        if not enjeu:
+            enjeu = True
+            temps_reset =pygame.time.get_ticks()
+            for key in scene:
+                for entite in scene[key]:
+                    entite["temps_avant"]=temps_reset
+            dernier_temps_missiles = temps_reset
 
 # Fonction qui calcule la différence entra l'ancienne et la nouvelle position du player (afin de l'appliquer aux élément du jeu)
 def get_delta_pos(entite,temps_maintenant,force_entite,orientation,stop=False):
