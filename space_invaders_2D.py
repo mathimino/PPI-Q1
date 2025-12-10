@@ -13,7 +13,7 @@ ORANGE = (255,165,0)
 BLEU = (0,0,255)
 WHITE = (255, 255, 255)
 
-RAYON_PLAYER = 20
+RAYON_VAISSEAU = 20
 RAYON_PLANETE_MIN=100
 RAYON_PLANETE_MAX=300
 DIST_MIN_ENTRE_PLANETE = 300
@@ -71,6 +71,11 @@ VITESSE_MAX_ENNEMIS = 0.2
 DISTANCE_REVERSE_PLANETE = 75
 DISTANCE2_AVANCE_ENNEMIS = 160000 #400**2
 FORCE_ENNEMIS = 0.3
+global dernier_spawn_ennemi
+dernier_spawn_ennemi = 0
+NBR_ENNEMIS_MAX = 10
+TEMPS_SPAWN_ENNEMIS_MIN = 3
+ennemis_images = ["ship_avance.png","ship_stop.png"]
 
 # Initialisation
 
@@ -104,7 +109,7 @@ missile_nom_pose = ['missile_vie','missile_mort_anim_1','missile_mort_anim_2','m
 missile_images = []
 for nom_fichier in ['missile_vie.png','missile_mort_anim_1.png','missile_mort_anim_2.png','missile_mort_anim_3.png']:
     image_missile = pygame.image.load('images/'+nom_fichier).convert_alpha(fenetre)
-    image_missile = pygame.transform.scale(image_missile,(RAYON_PLAYER,RAYON_PLAYER))
+    image_missile = pygame.transform.scale(image_missile,(RAYON_VAISSEAU,RAYON_VAISSEAU))
     missile_images.append(image_missile)
 
 
@@ -275,10 +280,10 @@ def cree_vaisseau():
     global player
     player_images =['player_avance.png','player_stop.png']
 
-    player = nouvelle_entite('player',[x_player_ecran,y_player_ecran],RAYON_PLAYER,masse_player,None,orientation_player,0,0) #player["position"] est la position fixe à l'écran
+    player = nouvelle_entite('player',[x_player_ecran,y_player_ecran],RAYON_VAISSEAU,masse_player,None,orientation_player,0,0) #player["position"] est la position fixe à l'écran
     for image in player_images:
         loaded_image = pygame.image.load('images/' + image).convert_alpha(fenetre)
-        loaded_image = pygame.transform.scale(loaded_image,(RAYON_PLAYER*2,RAYON_PLAYER))
+        loaded_image = pygame.transform.scale(loaded_image,(RAYON_VAISSEAU*2,RAYON_VAISSEAU))
         ajoute_pose(player,image.replace(".png", ""),loaded_image)
     explosion_taille(player,2)
     prends_pose(player,"player_stop")
@@ -496,8 +501,8 @@ def afficher_missile(missile):
     missile["rect"] = image_missile.get_rect(center = (x,y))
     fenetre.blit(image_missile,missile["rect"])
     pygame.draw.rect(fenetre, ROUGE, missile["rect"], 1)
-    if player["rect"].collidepoint(x,y):
-        print("touche")
+    # if player["rect"].collidepoint(x,y):
+    #     print("touche")
     
     return   
 
@@ -593,7 +598,7 @@ def tir_cannon(temps_maintenant,entite):
         if entite["type"] == "player":
             x,y = x_player_ecran,y_player_ecran 
             
-        missile = nouvelle_entite('missile',[x,y],RAYON_PLAYER/2,1000,None,orientation_missile,0,0,900,200)
+        missile = nouvelle_entite('missile',[x,y],RAYON_VAISSEAU/2,1000,None,orientation_missile,0,0,900,200)
         angle_rad_missile = math.radians(orientation_missile)
         missile['vitesse_x'] = entite["vitesse_x"] + VITESSE_MISSILE_INIT*math.cos(angle_rad_missile)
         missile['vitesse_y'] = entite["vitesse_y"] + VITESSE_MISSILE_INIT*math.sin(angle_rad_missile)
@@ -636,7 +641,7 @@ def collision_planetes(entite):
         delta_y = y_planete-yp
         #distance au carré entre la planete et l'entite
         r2 = delta_x**2 + delta_y**2
-        rayon_total = planete["rayon"]+RAYON_PLAYER
+        rayon_total = planete["rayon"]+RAYON_VAISSEAU
 
         if entite["type"] == "ennemi":
             # On cherche la planete la plus proche de l'ennemi
@@ -738,13 +743,7 @@ def gerer_touche(event):
                             player_avance = eteint_moteur(player_avance)
                     case pygame.K_e:
                         stop_vaisseau(player)
-                    case pygame.K_a:
-                        if event.type == pygame.KEYDOWN:
-                            if ennemi["avance"]:
-                                ennemi["avance"] = False
-                            else:
-                                ennemi["avance"] = True
-                            #print("Ennemi avance = " + str(ennemi["avance"]))
+                   
     elif not enjeu and (event.type == pygame.KEYDOWN or event.type == pygame.KEYUP):
         enjeu = True
         temps_reset =pygame.time.get_ticks()
@@ -780,12 +779,12 @@ def ai_ennemi(ennemi):
     #distance entre le centre de la planete et l'ennemi
     distance2_centre_planete = delta_x_planete**2 + delta_y_planete**2
     #calcul de la distance entre le bord de la planete et le bord de l'ennemi
-    rayon_total = planete["rayon"]+RAYON_PLAYER
+    rayon_total = planete["rayon"]+RAYON_VAISSEAU
     distance_planete = abs(math.sqrt(distance2_centre_planete)-rayon_total)
 
     # dessin des aides visuelles pour l'ia
     pygame.draw.circle(fenetre, ROUGE, planete["position"],rayon_total+DISTANCE_REVERSE_PLANETE, 3)
-    pygame.draw.circle(fenetre, BLEU, ennemi["position"], ennemi["rayon"], 3)
+    
     pygame.draw.line(fenetre,(0,255,0),ennemi["position"],planete["position"], 3)
     if distance2_player >= DISTANCE2_AVANCE_ENNEMIS:
         pygame.draw.line(fenetre,(138,43,226),ennemi["position"],[x_player_ecran,y_player_ecran], 3)
@@ -831,6 +830,54 @@ def ai_ennemi(ennemi):
     ennemi["position"][0] -= delta_pos[0]
     ennemi["position"][1] -= delta_pos[1]
 
+def spawn_enemis():
+    global dernier_spawn_ennemi
+
+
+    nbr_ennemis = len(scene["ennemis"])+1
+
+    spawn_random = random.randint(1,40)
+    spawn_time = pygame.time.get_ticks()//1000 #en secondes piles
+
+    # print(dernier_spawn_ennemi!=spawn_time)
+
+    if nbr_ennemis<=NBR_ENNEMIS_MAX and dernier_spawn_ennemi!=spawn_time and spawn_random==1 and (spawn_time%TEMPS_SPAWN_ENNEMIS_MIN)==0:
+        dernier_spawn_ennemi = spawn_time
+        print("spawn")
+        
+        x=0
+        y=0
+        match random.randint(1,4):
+            case 1:
+                #Côté haut
+                x = random.randint(0,dimensions_fenetre[0])
+                y = -(RAYON_VAISSEAU*3)
+            case 2:
+                #Côté droit
+                x = dimensions_fenetre[0] + RAYON_VAISSEAU*3
+                y = random.randint(0,dimensions_fenetre[1])
+            case 3:
+                #Côté bas
+                x = random.randint(0,dimensions_fenetre[0])
+                y = dimensions_fenetre[1] + RAYON_VAISSEAU*3
+            case 4:
+                #Côté gauche
+                x = -(RAYON_VAISSEAU*3)
+                y = random.randint(0,dimensions_fenetre[1])
+
+
+        ennemi = nouvelle_entite("ennemi",[x,y],RAYON_VAISSEAU,3000,None,0.3,0,0,VITESSE_MAX_ENNEMIS)
+        
+        for image in ennemis_images:
+            loaded_image = pygame.image.load('images/ennemis/' + image).convert_alpha(fenetre)
+            loaded_image = pygame.transform.scale(loaded_image,(ennemi["rayon"]*2,ennemi["rayon"]*2))
+            ajoute_pose(ennemi,image.replace(".png", ""),loaded_image)
+        for index,item in enumerate(missile_nom_pose):
+                ajoute_pose(ennemi,item,missile_images[index])
+        prends_pose(ennemi,"ship_stop")
+        ajouteAnimation(ennemi,'animation_mort',animation_missile())
+        explosion_taille(ennemi,2)
+        ajouteEntite(scene["ennemis"],ennemi)
 
 
 
@@ -838,24 +885,13 @@ def ai_ennemi(ennemi):
 
 
 
-ennemi = nouvelle_entite("ennemi",[500,500],RAYON_PLAYER,3000,None,0.3,0,0,VITESSE_MAX_ENNEMIS)
-ennemis_images = ["ship_avance.png","ship_stop.png"]
-for image in ennemis_images:
-    loaded_image = pygame.image.load('images/ennemis/' + image).convert_alpha(fenetre)
-    loaded_image = pygame.transform.scale(loaded_image,(ennemi["rayon"]*2,ennemi["rayon"]*2))
-    ajoute_pose(ennemi,image.replace(".png", ""),loaded_image)
 
-for index,item in enumerate(missile_nom_pose):
-        ajoute_pose(ennemi,item,missile_images[index])
-ajouteAnimation(ennemi,'animation_mort',animation_missile())
-explosion_taille(ennemi,2)
-ajouteEntite(scene["ennemis"],ennemi)
 
 
 
 # Création du vaisseau
-distance_bord_ecran_x = abs(x_player_ecran+RAYON_PLAYER)
-distance_bord_ecran_y = abs(y_player_ecran+RAYON_PLAYER)
+distance_bord_ecran_x = abs(x_player_ecran+RAYON_VAISSEAU)
+distance_bord_ecran_y = abs(y_player_ecran+RAYON_VAISSEAU)
 
 
 cree_vaisseau()
@@ -888,6 +924,7 @@ while True:
             force_player = 0
         fenetre.fill(couleur_fond)
 
+        spawn_enemis()
         for ennemi in scene["ennemis"]:
             if not estEnAnimation(ennemi):
                 ai_ennemi(ennemi)
