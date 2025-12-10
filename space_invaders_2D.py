@@ -278,10 +278,10 @@ def cree_vaisseau():
     player = nouvelle_entite('player',[x_player_ecran,y_player_ecran],RAYON_PLAYER,masse_player,None,orientation_player,0,0) #player["position"] est la position fixe à l'écran
     for image in player_images:
         loaded_image = pygame.image.load('images/' + image).convert_alpha(fenetre)
-        loaded_image = pygame.transform.scale(loaded_image,(RAYON_PLAYER*2,RAYON_PLAYER*2))
+        loaded_image = pygame.transform.scale(loaded_image,(RAYON_PLAYER*2,RAYON_PLAYER))
         ajoute_pose(player,image.replace(".png", ""),loaded_image)
     explosion_taille(player,2)
-    prends_pose(player,"player_avance")
+    prends_pose(player,"player_stop")
     ajouteEntite(scene["player"],player)
     ajouteAnimation(player,"animation_mort",animation_missile())
     return 
@@ -479,8 +479,10 @@ def afficher_vaisseau(vaisseau):
     
       #Il faut rajouter un moins sinon l'image du vaisseau tourne dans le mauvais sens
     photo_vaisseau_r = pygame.transform.rotate(vaisseau["image"],-vaisseau["orientation"])
-    position_vaisseau_photo = pygame.Rect(x-vaisseau["rayon"],y-vaisseau["rayon"],2*vaisseau["rayon"],2*vaisseau["rayon"])
-    fenetre.blit(photo_vaisseau_r,position_vaisseau_photo)
+    
+    vaisseau["rect"]= photo_vaisseau_r.get_rect(center = (x,y))
+    
+    fenetre.blit(photo_vaisseau_r,vaisseau["rect"])
     pygame.draw.rect(fenetre, ROUGE, vaisseau["rect"], 1)
 
 
@@ -491,12 +493,12 @@ def afficher_missile(missile):
 
     #Il faut rajouter un moins sinon l'image du vaisseau tourne dans le mauvais sens
     image_missile = pygame.transform.rotate(missile["image"],-missile["orientation"])
-    fenetre.blit(image_missile,(x,y))
+    missile["rect"] = image_missile.get_rect(center = (x,y))
+    fenetre.blit(image_missile,missile["rect"])
     pygame.draw.rect(fenetre, ROUGE, missile["rect"], 1)
     if player["rect"].collidepoint(x,y):
         print("touche")
-    else:
-        print()
+    
     return   
 
 
@@ -535,6 +537,7 @@ def affiche(scene,delta_pos):
     for key in scene.keys():
         for entite in scene[key]:
             
+            
             if key == "player":
                 afficher_vaisseau(player)
                 animation_mort_globale(entite,scene["player"])
@@ -561,9 +564,8 @@ def affiche(scene,delta_pos):
                     afficher_vaisseau(entite)
                 elif key == "missiles":
                     afficher_missile(entite)
-            if "image" in entite:
-                size_image = entite["image"].get_size()
-                entite["rect"] = entite["image"].get_rect(center=(entite["position"]))
+           
+
                     
                     
 
@@ -842,9 +844,11 @@ for image in ennemis_images:
     loaded_image = pygame.image.load('images/ennemis/' + image).convert_alpha(fenetre)
     loaded_image = pygame.transform.scale(loaded_image,(ennemi["rayon"]*2,ennemi["rayon"]*2))
     ajoute_pose(ennemi,image.replace(".png", ""),loaded_image)
+
 for index,item in enumerate(missile_nom_pose):
         ajoute_pose(ennemi,item,missile_images[index])
 ajouteAnimation(ennemi,'animation_mort',animation_missile())
+explosion_taille(ennemi,2)
 ajouteEntite(scene["ennemis"],ennemi)
 
 
