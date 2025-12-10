@@ -197,7 +197,8 @@ def ajoute_pose(entite,nom,image):
     entite['poses'][nom] = image
 
 def prends_pose(entite,nom_pose):
-    entite['image'] =entite['poses'][nom_pose]  
+    entite['image'] = entite['poses'][nom_pose]  
+    entite["rect"] = entite["image"].get_rect(center=(entite["position"]))
     
 def estEnAnimation(entite):
     return entite['animationActuelle']!=None
@@ -213,7 +214,7 @@ def animation_missile():
 def animation_mort_globale(entite,scene):
     global enjeu,nombre_vies
     if entite['animationActuelle']!=None:
-                        print("animation mtn = " + str(entite['animationActuelle']))
+                        # print("animation mtn = " + str(entite['animationActuelle']))
                         animationActuelle = entite['animationActuelle']
                         poseActuelle = mouvementActuel(animationActuelle)
                         # print(ennemi)
@@ -251,7 +252,8 @@ def nouvelle_entite(type_entite,position_entite,rayon_entite,masse_entite,image=
      'animationActuelle':None,
      'animation':{},
      'cpt_reverse': -1,
-     'cpt_shot': 0
+     'cpt_shot': 0,
+     'rect': None
     }
 def destroy_entite(scene,entite):
     if entite in scene:
@@ -298,6 +300,7 @@ def eteint_moteur(player_avance):
 
 def stop_vaisseau(vaisseau):
     get_delta_pos(vaisseau,pygame.time.get_ticks(),0,orientation_player,True)
+
 #fonction de deplacement
 def get_delta_pos(entite,temps_maintenant,force_entite,orientation,stop=False):
     
@@ -478,6 +481,7 @@ def afficher_vaisseau(vaisseau):
     photo_vaisseau_r = pygame.transform.rotate(vaisseau["image"],-vaisseau["orientation"])
     position_vaisseau_photo = pygame.Rect(x-vaisseau["rayon"],y-vaisseau["rayon"],2*vaisseau["rayon"],2*vaisseau["rayon"])
     fenetre.blit(photo_vaisseau_r,position_vaisseau_photo)
+    pygame.draw.rect(fenetre, ROUGE, vaisseau["rect"], 1)
 
 
 def afficher_missile(missile):
@@ -488,6 +492,11 @@ def afficher_missile(missile):
     #Il faut rajouter un moins sinon l'image du vaisseau tourne dans le mauvais sens
     image_missile = pygame.transform.rotate(missile["image"],-missile["orientation"])
     fenetre.blit(image_missile,(x,y))
+    pygame.draw.rect(fenetre, ROUGE, missile["rect"], 1)
+    if player["rect"].collidepoint(x,y):
+        print("touche")
+    else:
+        print()
     return   
 
 
@@ -542,6 +551,9 @@ def affiche(scene,delta_pos):
                     afficher_vaisseau(entite)
                 elif key == "missiles":
                     afficher_missile(entite)
+            if "image" in entite:
+                size_image = entite["image"].get_size()
+                entite["rect"] = entite["image"].get_rect(center=(entite["position"]))
                     
                     
 
@@ -580,7 +592,6 @@ def tir_cannon(temps_maintenant,entite):
         ajouteEntite(scene["missiles"],missile)
         ajouteAnimation(missile,'animation_mort',animation_missile())
         temps_avant_recharge = temps_maintenant
-        print(missile)
     return
 def autodestruction_missile(missile):
     delai_vie  = missile["duree_vie"]
@@ -614,6 +625,7 @@ def collision_planetes(entite):
         #distance au carré entre la planete et l'entite
         r2 = delta_x**2 + delta_y**2
         rayon_total = planete["rayon"]+RAYON_PLAYER
+
         if entite["type"] == "ennemi":
             # On cherche la planete la plus proche de l'ennemi
             #la distance entre le bord de la planete et le bord de l'entite
@@ -626,8 +638,8 @@ def collision_planetes(entite):
                 commenceAnimation(entite,"animation_mort",1)
 
         if entite["type"] == "player" and r2 <= rayon_total**2:
-            # commenceAnimation(entite,"animation_mort",1)
-            print()
+            commenceAnimation(entite,"animation_mort",1)
+            # print()
 
     # on retourne l'index de la planete la plus proche de l'ennemi
     return index_planete_proche
@@ -798,7 +810,7 @@ def ai_ennemi(ennemi):
         can_shoot = random.randint(1,2)
         # print(can_shoot)
         if can_shoot == 1 :
-            print("shot!")
+            # print("shot!")
             tir_cannon(pygame.time.get_ticks(),ennemi)
 
 
@@ -832,13 +844,6 @@ distance_bord_ecran_x = abs(x_player_ecran+RAYON_PLAYER)
 distance_bord_ecran_y = abs(y_player_ecran+RAYON_PLAYER)
 
 
-
-
-
-
-
-
-
 cree_vaisseau()
 generer_carte()
 generer_fond_etoile()
@@ -846,7 +851,7 @@ dernier_temps_missiles = pygame.time.get_ticks()
 
 
 musique = pygame.mixer.Sound("sons/musique_fond.wav")
-musique.play(loops=-1)
+# musique.play(loops=-1)
 
 ### Boucle de jeu ###
 while True:
@@ -868,9 +873,12 @@ while True:
         else:
             force_player = 0
         fenetre.fill(couleur_fond)
+
         for ennemi in scene["ennemis"]:
             if not estEnAnimation(ennemi):
                 ai_ennemi(ennemi)
+
+                
         mise_a_jour_etat_missile(delta_t_missile)
         
 
@@ -878,7 +886,8 @@ while True:
         
         affiche(scene, delta_pos)
        # gerer_collision_generale()
-        collision_planetes(player)
+        # collision_planetes(player)
+        # print(player["rect"].colliderect(ennemi["rect"]))
     if not enjeu:
         afficher_menu()
           
