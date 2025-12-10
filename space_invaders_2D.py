@@ -76,6 +76,8 @@ dernier_spawn_ennemi = 0
 NBR_ENNEMIS_MAX = 10
 TEMPS_SPAWN_ENNEMIS_MIN = 3
 ennemis_images = ["ship_avance.png","ship_stop.png"]
+DUREE_VIE_ENNEMIS = 60
+
 
 # Initialisation
 
@@ -866,7 +868,7 @@ def spawn_enemis():
                 y = random.randint(0,dimensions_fenetre[1])
 
 
-        ennemi = nouvelle_entite("ennemi",[x,y],RAYON_VAISSEAU,3000,None,0.3,0,0,VITESSE_MAX_ENNEMIS)
+        ennemi = nouvelle_entite("ennemi",[x,y],RAYON_VAISSEAU,3000,None,0.3,0,0,VITESSE_MAX_ENNEMIS,DUREE_VIE_ENNEMIS)
         
         for image in ennemis_images:
             loaded_image = pygame.image.load('images/ennemis/' + image).convert_alpha(fenetre)
@@ -882,7 +884,16 @@ def spawn_enemis():
 
 
 
-
+def despawn_ennemis():
+    for ennemi in scene["ennemis"]:
+        # si l'ennemi est hors de l'écran
+        if abs(ennemi["position"][0]) < 0 or abs(ennemi["position"][0]) > dimensions_fenetre[0] \
+            or abs(ennemi["position"][1]) < 0 or abs(ennemi["position"][1]) > dimensions_fenetre[1]:
+            ennemi["duree_vie"] -= 1
+            if ennemi["duree_vie"] < 0:
+                destroy_entite(scene["ennemis"],ennemi)
+        else:
+            ennemi["duree_vie"] = DUREE_VIE_ENNEMIS
 
 
 
@@ -925,6 +936,8 @@ while True:
         fenetre.fill(couleur_fond)
 
         spawn_enemis()
+        despawn_ennemis()
+
         for ennemi in scene["ennemis"]:
             if not estEnAnimation(ennemi):
                 ai_ennemi(ennemi)
