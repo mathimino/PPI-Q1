@@ -876,7 +876,7 @@ def spawn_enemis():
                 y = random.randint(0,dimensions_fenetre[1])
 
 
-        ennemi = nouvelle_entite("ennemi",[x,y],RAYON_VAISSEAU,3000,None,0.3,0,0,VITESSE_MAX_ENNEMIS)
+        ennemi = nouvelle_entite("ennemi",[x,y],RAYON_VAISSEAU,3000,None,0.3,0,0,VITESSE_MAX_ENNEMIS,DUREE_VIE_ENNEMIS)
         
         for image in ennemis_images:
             loaded_image = pygame.image.load('images/ennemis/' + image).convert_alpha(fenetre)
@@ -889,7 +889,16 @@ def spawn_enemis():
         explosion_taille(ennemi,2)
         ajouteEntite(scene["ennemis"],ennemi)
 
-
+def despawn_ennemis():
+    for ennemi in scene["ennemis"]:
+        # si l'ennemi est hors de l'écran
+        if abs(ennemi["position"][0]) < 0 or abs(ennemi["position"][0]) > dimensions_fenetre[0] \
+            or abs(ennemi["position"][1]) < 0 or abs(ennemi["position"][1]) > dimensions_fenetre[1]:
+            ennemi["duree_vie"] -= 1
+            if ennemi["duree_vie"] < 0:
+                destroy_entite(scene["ennemis"],ennemi)
+        else:
+            ennemi["duree_vie"] = DUREE_VIE_ENNEMIS
 
 
 def reset_jeu():
@@ -960,6 +969,7 @@ while True:
         fenetre.fill(couleur_fond)
 
         spawn_enemis()
+        despawn_ennemis()
         for ennemi in scene["ennemis"]:
             if not estEnAnimation(ennemi):
                 ai_ennemi(ennemi)
