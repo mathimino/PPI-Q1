@@ -476,7 +476,7 @@ def afficher_vaisseau(vaisseau):
     if vaisseau["type"] == "player":
         x,y = x_player_ecran,y_player_ecran
 
-    if vaisseau["type"] == "ennemi" and not estEnAnimation(ennemi):
+    if vaisseau["type"] == "ennemi" and not estEnAnimation(vaisseau):
         if vaisseau["avance"]:
             prends_pose(vaisseau,"ship_avance")
         else:
@@ -651,7 +651,7 @@ def collision_planetes(entite):
                 min_dist = distance_planete
                 index_planete_proche = index
             
-            if r2 <= rayon_total**2:
+            if r2 <= rayon_total**2 and not estEnAnimation(ennemi):
                 commenceAnimation(entite,"animation_mort",1)
 
         if entite["type"] == "player" and r2 <= rayon_total**2:
