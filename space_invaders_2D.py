@@ -506,15 +506,25 @@ def afficher_menu():
     fenetre.blit(images_menu,(0,0))
     fenetre.blit(image_titre,(10,50))
     temps_titre = pygame.time.get_ticks()
-    texte_meuilleur_score = police.render(("HIGHSCORE :"),True,WHITE)
+    texte_meilleur_score = police.render(("HIGHSCORE :"),True,WHITE)
     texte_score = police.render(str(round(highscore)),True,WHITE)
-    texte_meuilleur_score = pygame.transform.scale(texte_meuilleur_score,(dimensions_fenetre[0]/4,dimensions_fenetre[1]/28))
-    if ((temps_titre//1000)%2==0):
-        commenceJouer= police.render(("Appuyez pour commencer"), True, WHITE)
+    texte_meilleur_score = pygame.transform.scale(texte_meilleur_score,(dimensions_fenetre[0]/4,dimensions_fenetre[1]/28))
+    if (temps_titre//1000)%3!=0:
+
+        commenceJouer= police.render(("Appuyez pour commencer"), True, JAUNE)
         commenceJouer = pygame.transform.scale(commenceJouer,(dimensions_fenetre[0]/2,dimensions_fenetre[1]/14))
         fenetre.blit(commenceJouer,(dimensions_fenetre[0]/4,300))
+
+        text_controls = police.render(("Controler le vaisseau avec Z et le curseur de souris"), True, WHITE)
+        text_controls = pygame.transform.scale(text_controls,(9*dimensions_fenetre[0]/10,dimensions_fenetre[1]/17))
+        fenetre.blit(text_controls,(dimensions_fenetre[0]/20,400))
+        
+        text_shoot = police.render(("Tirez avec un click de la souris"), True, WHITE)
+        text_shoot = pygame.transform.scale(text_shoot,(4*dimensions_fenetre[0]/5,dimensions_fenetre[1]/17))
+        fenetre.blit(text_shoot,(dimensions_fenetre[0]/10,500))
+
         if nombre_vies<NOMBRE_VIES_INIT:
-            fenetre.blit(texte_meuilleur_score,(3*dimensions_fenetre[0]/8,20))
+            fenetre.blit(texte_meilleur_score,(3*dimensions_fenetre[0]/8,20))
             fenetre.blit(texte_score,(5*dimensions_fenetre[0]/8,27))
         
     for i in range(nombre_vies):
@@ -711,8 +721,10 @@ def gerer_touche(event):
             pygame.display.quit()
             pygame.quit()
             exit()
-    if event.type == pygame.KEYDOWN or event.type == pygame.KEYUP:
-        if enjeu:
+    if event.type == pygame.MOUSEBUTTONDOWN:
+        tir_cannon(pygame.time.get_ticks(),player)
+    if enjeu:
+        if event.type == pygame.KEYDOWN or event.type == pygame.KEYUP:
             if not estEnAnimation(player):
                 key = event.key
                 match key:
@@ -724,8 +736,6 @@ def gerer_touche(event):
                             player_avance = eteint_moteur(player_avance)
                     case pygame.K_e:
                         stop_vaisseau(player)
-                    case pygame.K_t:
-                        tir_cannon(temps_maintenant,player)
                     case pygame.K_a:
                         if event.type == pygame.KEYDOWN:
                             if ennemi["avance"]:
@@ -733,13 +743,13 @@ def gerer_touche(event):
                             else:
                                 ennemi["avance"] = True
                             #print("Ennemi avance = " + str(ennemi["avance"]))
-        if not enjeu:
-            enjeu = True
-            temps_reset =pygame.time.get_ticks()
-            for key in scene:
-                for entite in scene[key]:
-                    entite["temps_avant"]=temps_reset
-            dernier_temps_missiles = temps_reset    
+    elif not enjeu and (event.type == pygame.KEYDOWN or event.type == pygame.KEYUP):
+        enjeu = True
+        temps_reset =pygame.time.get_ticks()
+        for key in scene:
+            for entite in scene[key]:
+                entite["temps_avant"]=temps_reset
+        dernier_temps_missiles = temps_reset    
         
 
 
