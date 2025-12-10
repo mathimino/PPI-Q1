@@ -29,7 +29,7 @@ NBR_PLANETE_MIN = 750
 NBR_PLANETE_MAX=1000
 NOMBRE_ETOILES = 10000
 global nombre_vies
-nombre_vies = 3
+nombre_vies = 1
 NOMBRE_VIES_INIT=3
 highscore = 1000000
 
@@ -77,7 +77,6 @@ NBR_ENNEMIS_MAX = 10
 TEMPS_SPAWN_ENNEMIS_MIN = 3
 ennemis_images = ["ship_avance.png","ship_stop.png"]
 DUREE_VIE_ENNEMIS = 60
-
 
 # Initialisation
 
@@ -230,7 +229,7 @@ def animation_mort_globale(entite,scene):
                         if nouvellePose == None:
                             entite['animationActuelle'] = None
                             if entite["type"]== "player":
-                                enjeu = False
+                                reset_jeu()
                                 nombre_vies -=1
                             destroy_entite(scene,entite)
                                 
@@ -490,7 +489,7 @@ def afficher_vaisseau(vaisseau):
     vaisseau["rect"]= photo_vaisseau_r.get_rect(center = (x,y))
     
     fenetre.blit(photo_vaisseau_r,vaisseau["rect"])
-    pygame.draw.rect(fenetre, ROUGE, vaisseau["rect"], 1)
+    #pygame.draw.rect(fenetre, ROUGE, vaisseau["rect"], 1)
 
 
 def afficher_missile(missile):
@@ -502,7 +501,7 @@ def afficher_missile(missile):
     image_missile = pygame.transform.rotate(missile["image"],-missile["orientation"])
     missile["rect"] = image_missile.get_rect(center = (x,y))
     fenetre.blit(image_missile,missile["rect"])
-    pygame.draw.rect(fenetre, ROUGE, missile["rect"], 1)
+    #pygame.draw.rect(fenetre, ROUGE, missile["rect"], 1)
     # if player["rect"].collidepoint(x,y):
     #     print("touche")
     
@@ -518,11 +517,12 @@ def afficher_menu():
     texte_meilleur_score = police.render(("HIGHSCORE :"),True,WHITE)
     texte_score = police.render(str(round(highscore)),True,WHITE)
     texte_meilleur_score = pygame.transform.scale(texte_meilleur_score,(dimensions_fenetre[0]/4,dimensions_fenetre[1]/28))
-    if (temps_titre//1000)%3!=0:
+    if nombre_vies>0:
+        if (temps_titre//1000)%3!=0:
 
-        commenceJouer= police.render(("Appuyez pour commencer"), True, JAUNE)
-        commenceJouer = pygame.transform.scale(commenceJouer,(dimensions_fenetre[0]/2,dimensions_fenetre[1]/14))
-        fenetre.blit(commenceJouer,(dimensions_fenetre[0]/4,300))
+            commenceJouer= police.render(("Appuyez pour commencer"), True, JAUNE)
+            commenceJouer = pygame.transform.scale(commenceJouer,(dimensions_fenetre[0]/2,dimensions_fenetre[1]/14))
+            fenetre.blit(commenceJouer,(dimensions_fenetre[0]/4,300))
 
         text_controls = police.render(("Controler le vaisseau avec Z et le curseur de souris"), True, WHITE)
         text_controls = pygame.transform.scale(text_controls,(9*dimensions_fenetre[0]/10,dimensions_fenetre[1]/17))
@@ -536,8 +536,12 @@ def afficher_menu():
             fenetre.blit(texte_meilleur_score,(3*dimensions_fenetre[0]/8,20))
             fenetre.blit(texte_score,(5*dimensions_fenetre[0]/8,27))
         
-    for i in range(nombre_vies):
-        fenetre.blit(image_coeur,(dimensions_fenetre[0]/2-(nombre_vies/2)*dimensions_fenetre[0]/10+i*dimensions_fenetre[0]/10,dimensions_fenetre[1]-200))
+        for i in range(nombre_vies):
+            fenetre.blit(image_coeur,(dimensions_fenetre[0]/2-(nombre_vies/2)*dimensions_fenetre[0]/10+i*dimensions_fenetre[0]/10,dimensions_fenetre[1]-200))
+    if nombre_vies <=0:
+        texte_game_over = police.render(("GAME OVER"),True , ROUGE)
+        texte_game_over = pygame.transform.scale(texte_game_over,(4*dimensions_fenetre[0]/5,dimensions_fenetre[1]/15))
+        fenetre.blit(texte_game_over,(dimensions_fenetre[0]/10,dimensions_fenetre[1]/2))
 
 
 def affiche(scene,delta_pos):
@@ -730,7 +734,7 @@ def gerer_touche(event):
             pygame.display.quit()
             pygame.quit()
             exit()
-    if event.type == pygame.MOUSEBUTTONDOWN:
+    if event.type == pygame.MOUSEBUTTONDOWN :
         tir_cannon(pygame.time.get_ticks(),player)
     if enjeu:
         if event.type == pygame.KEYDOWN or event.type == pygame.KEYUP:
@@ -745,6 +749,10 @@ def gerer_touche(event):
                             player_avance = eteint_moteur(player_avance)
                     case pygame.K_e:
                         stop_vaisseau(player)
+                    case pygame.K_t :
+                        tir_cannon(pygame.time.get_ticks(),player)
+                    case pygame.K_o:
+                        commenceAnimation(player,"animation_mort",1)
                    
     elif not enjeu and (event.type == pygame.KEYDOWN or event.type == pygame.KEYUP):
         enjeu = True
@@ -785,13 +793,13 @@ def ai_ennemi(ennemi):
     distance_planete = abs(math.sqrt(distance2_centre_planete)-rayon_total)
 
     # dessin des aides visuelles pour l'ia
-    pygame.draw.circle(fenetre, ROUGE, planete["position"],rayon_total+DISTANCE_REVERSE_PLANETE, 3)
+    #pygame.draw.circle(fenetre, ROUGE, planete["position"],rayon_total+DISTANCE_REVERSE_PLANETE, 3)
     
-    pygame.draw.line(fenetre,(0,255,0),ennemi["position"],planete["position"], 3)
-    if distance2_player >= DISTANCE2_AVANCE_ENNEMIS:
-        pygame.draw.line(fenetre,(138,43,226),ennemi["position"],[x_player_ecran,y_player_ecran], 3)
-    else:
-        pygame.draw.line(fenetre,ORANGE,ennemi["position"],[x_player_ecran,y_player_ecran], 3)
+    #pygame.draw.line(fenetre,(0,255,0),ennemi["position"],planete["position"], 3)
+    #if distance2_player >= DISTANCE2_AVANCE_ENNEMIS:
+        #pygame.draw.line(fenetre,(138,43,226),ennemi["position"],[x_player_ecran,y_player_ecran], 3)
+    #else:
+        #pygame.draw.line(fenetre,ORANGE,ennemi["position"],[x_player_ecran,y_player_ecran], 3)
 
 
     force_ennemi = 0
@@ -868,7 +876,7 @@ def spawn_enemis():
                 y = random.randint(0,dimensions_fenetre[1])
 
 
-        ennemi = nouvelle_entite("ennemi",[x,y],RAYON_VAISSEAU,3000,None,0.3,0,0,VITESSE_MAX_ENNEMIS,DUREE_VIE_ENNEMIS)
+        ennemi = nouvelle_entite("ennemi",[x,y],RAYON_VAISSEAU,3000,None,0.3,0,0,VITESSE_MAX_ENNEMIS)
         
         for image in ennemis_images:
             loaded_image = pygame.image.load('images/ennemis/' + image).convert_alpha(fenetre)
@@ -884,18 +892,34 @@ def spawn_enemis():
 
 
 
-def despawn_ennemis():
-    for ennemi in scene["ennemis"]:
-        # si l'ennemi est hors de l'écran
-        if abs(ennemi["position"][0]) < 0 or abs(ennemi["position"][0]) > dimensions_fenetre[0] \
-            or abs(ennemi["position"][1]) < 0 or abs(ennemi["position"][1]) > dimensions_fenetre[1]:
-            ennemi["duree_vie"] -= 1
-            if ennemi["duree_vie"] < 0:
-                destroy_entite(scene["ennemis"],ennemi)
-        else:
-            ennemi["duree_vie"] = DUREE_VIE_ENNEMIS
+def reset_jeu():
+    global enjeu
+    enjeu = False
+    #on supprime toute les entite
+    for key in scene:
+        for entite in scene[key]:
+            destroy_entite(scene[key],entite)
+    #on genere la carte
+    
+    cree_vaisseau()
+    player["position"]= dimensions_fenetre[0]/2,dimensions_fenetre[1]/2
+    player["vitesse_x"]=0
+    player["vitesse_y"]=0
+    player["vitesse_x_avant"]=0
+    player["vitesse_y_avant"]=0
+    player["temps_avant"]=0
+    player["orientation"]=0
+    player["avance"]=False
+    player["animationActuelle"]=None
 
+    generer_carte()
+    generer_fond_etoile()
+    
+    
+    
+    
 
+    return
 
 
 
@@ -912,7 +936,7 @@ dernier_temps_missiles = pygame.time.get_ticks()
 
 
 musique = pygame.mixer.Sound("sons/musique_fond.wav")
-# musique.play(loops=-1)
+musique.play(loops=-1)
 
 ### Boucle de jeu ###
 while True:
@@ -936,8 +960,6 @@ while True:
         fenetre.fill(couleur_fond)
 
         spawn_enemis()
-        despawn_ennemis()
-
         for ennemi in scene["ennemis"]:
             if not estEnAnimation(ennemi):
                 ai_ennemi(ennemi)
