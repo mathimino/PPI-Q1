@@ -2,9 +2,6 @@ import math
 import pygame
 import random
 
-
-
-
 #Couleur
 
 NOIR = (0, 0, 0)
@@ -44,10 +41,12 @@ global highscore
 highscore = 0
 global score
 score = 0
+global nouveau_meilleur_score
+nouveau_meilleur_score = False
 
 # Paramètres jeu,menu
 
-dimensions_fenetre = (900,900)  # en pixels
+dimensions_fenetre = (1500,900)  # en pixels
 DISTANCE_AFFICHAGE = 9*dimensions_fenetre[0]**2
 LIMITES_JEU = [10000,10000]
 images_par_seconde = 25
@@ -57,6 +56,8 @@ global debug
 debug = False
 
 
+
+
 #variables missiles
 temps_avant_recharge = 0
 delai_recharge = 200
@@ -64,8 +65,7 @@ delai_recharge = 200
 #entite
 global scene
 
-# player
-#coordonnés du player dans le repere écran
+# player variables
 x_player_ecran,y_player_ecran = dimensions_fenetre[0]/2,dimensions_fenetre[1]/2
 position_player = x_player_ecran,y_player_ecran
 orientation_player = 0
@@ -73,6 +73,8 @@ puissance_player = 1
 masse_player = 3000
 player_avance = False
 vitesse_max_player = 1
+distance_bord_ecran_x = abs(x_player_ecran+RAYON_VAISSEAU)
+distance_bord_ecran_y = abs(y_player_ecran+RAYON_VAISSEAU)
 
 #Ennemis
 CPT_REVERSE = 50
@@ -98,6 +100,8 @@ pygame.display.set_caption("Space Invaders 2D")
 pygame.key.set_repeat(10, 10)
 horloge = pygame.time.Clock()
 
+musique = pygame.mixer.Sound("sons/musique_fond.wav")
+musique.play(loops=-1)
 
 police = pygame.font.SysFont('monospace', dimensions_fenetre[1]//50, True)
 #cration de toutes les listes
@@ -124,7 +128,7 @@ for nom_fichier in explosion_nom_poses:
     image_explosion = pygame.transform.scale(image_explosion,(RAYON_VAISSEAU,RAYON_VAISSEAU))
     explosion_images.append(image_explosion)
 
-#on ajoute aux ses images de mort et sa texture
+#on ajoute aux missiles ses images de mort et sa texture
 missile_images = explosion_images
 image_missile = pygame.image.load("images/missile/missile.png").convert_alpha(fenetre)
 image_missile = pygame.transform.scale(image_missile,(RAYON_VAISSEAU,RAYON_VAISSEAU))
@@ -132,6 +136,7 @@ missile_images.append(image_missile)
 
 #on load toutes les images pour le menu et on redimensionne
 images_menu = pygame.image.load('images/menu/menu_fond.png').convert_alpha(fenetre)
+images_menu = pygame.transform.scale(images_menu,(dimensions_fenetre[0],dimensions_fenetre[1]))
 image_titre = pygame.image.load('images/menu/menu_titre.png').convert_alpha(fenetre)
 image_titre= pygame.transform.scale(image_titre,(dimensions_fenetre[0],dimensions_fenetre[1]/2))
 image_coeur = pygame.image.load('images/menu/vie_joueur.png').convert_alpha(fenetre)
@@ -311,7 +316,7 @@ def cree_vaisseau():
         ajoute_pose(player,image.replace(".png", ""),loaded_image)
     #on redimensionne ses imaages de mort
     explosion_taille(player,2)
-    #on lui donne la posse vaisseauu eteint
+    #on lui donne la posse vaisseau eteint
     prends_pose(player,"player_stop")
     #on ajoute l entite a la scene et on lui donne son animation de fin
     ajouteEntite(scene["player"],player)
@@ -335,11 +340,22 @@ def stop_vaisseau(vaisseau):
     #on stoppe entierement le vaisseau (DEBUG)
     get_delta_pos(vaisseau,pygame.time.get_ticks(),0,orientation_player,True)
 
+def nouvelle_orientation_vaisseau_player():
+        global orientation_player
+    #on recupere la position du curseur
+        mouse_x,mouse_y = pygame.mouse.get_pos()
+        delta_mouse_x, delta_mouse_y = mouse_x-x_player_ecran, mouse_y-y_player_ecran
+        
+        # Calcul du nouvel angle du vaisseau par rapport à la position de la souris (modulo 360)
+        if not estEnAnimation(player):
+            angle_rad = math.atan2(delta_mouse_y,delta_mouse_x)
+            orientation_player = (math.degrees(angle_rad))%360
+            player["orientation"] = orientation_player
 #fonction de deplacement
 def get_delta_pos(entite,temps_maintenant,force_entite,orientation,stop=False):
     
     global position_player
-    
+    #cette fonction permet de calculer le deplacement de toute les entites en fonction du vaisseau
     #cordonnés du player dans la map
     x0,y0 = entite["position"]
     if entite["type"] == "player":
@@ -347,19 +363,21 @@ def get_delta_pos(entite,temps_maintenant,force_entite,orientation,stop=False):
         
 
     vx0, vy0 = entite["vitesse_x_avant"], entite["vitesse_y_avant"]
-
+    #on calcule le delta temps propre a chaque entite
     delta_t = temps_maintenant - entite["temps_avant"]
     
-    
+    #on prend l orientation dans l espace de  l entite
     angle_rad = math.radians(orientation)
     #récupération de l'accélération du player
     a = force_entite/entite["masse"]
+    #on recupere les composante du vecteur acceleration
     ax = a*math.cos(angle_rad)
     ay = a*math.sin(angle_rad)
             
 
-    # calcul gravité pour chaque planete
+    # calcul gravité pour chaque planete ( dans le rayon d influence)
     a_planete_x,a_planete_y = calcul_gravite_planete(entite)
+    #incrementation
     ax+=a_planete_x
     ay+=a_planete_y
 
@@ -368,6 +386,7 @@ def get_delta_pos(entite,temps_maintenant,force_entite,orientation,stop=False):
     vy = vy0+ay*delta_t
 
     # Vitesse max
+    #on bride la vitesse de l entite
     vitesse_max = entite["vitesse_max"]
     if abs(vx)>vitesse_max:
         if vx > 0:
@@ -383,7 +402,7 @@ def get_delta_pos(entite,temps_maintenant,force_entite,orientation,stop=False):
         ay = 0
 
 
-    #mise a jour position du player
+    #mise a jour position de l entite
     x =x0 + vx0*delta_t + (ax*delta_t**2)/2
     y =y0 + vy0*delta_t + (ay*delta_t**2)/2
 
@@ -409,17 +428,20 @@ def get_delta_pos(entite,temps_maintenant,force_entite,orientation,stop=False):
         position_player = [x,y]
     
 
-    # On retourne la différence entre l'ancienne et nouvelle position du player
+    # On retourne la différence entre l'ancienne et nouvelle position du player 
+    #pour deplacer les entite et donc garder le joeur centrer
     return [x0-x,y0-y]
 
 def calcul_gravite_planete(entite):
-    if entite["type"] !="player" and entite["type"] !="missile": #and entite["type"] !="ennemi":
+    #on applique la gravite uniquement aux missiles et au player
+    if entite["type"] !="player" and entite["type"] !="missile": 
         return 0,0
     else:
         a_planete_x = 0
         a_planete_y = 0
         masse_entite = entite["masse"]
         x_entite,y_entite = entite["position"]
+        #on enumere chaque planete dans scene
         for planete in scene['planetes']: 
                     x_planete,y_planete = planete["position"]
 
@@ -429,11 +451,12 @@ def calcul_gravite_planete(entite):
                     r2 = delta_x**2 + delta_y**2
 
                     #on applique la gravité pour un rayon appartenant à [0,rayon_influence]
+                    #car apres ce rayon d influence : gravite negligeable
                     if r2<= RAYON_INFLUENCE**2 and r2>0:
                         r = math.sqrt(r2)
                         masse_planete = planete["masse"]
 
-                        #calcul gravité
+                        #calcul acceleration gravité
                         Force_grav = CONSTANTE_GRAV*masse_planete*masse_entite/r2
                         a_grav = Force_grav/masse_entite
                         #on additionne la gravité à celle du moteur(+vecteur unitaire pour la direction)
@@ -441,31 +464,35 @@ def calcul_gravite_planete(entite):
                         a_planete_y+=a_grav*(delta_y/r)
         return a_planete_x,a_planete_y
 
-
 #fonction de generation
+
 def nouvelle_etoile(position):
     return{
         "position" : position
     }
-               
+
+#generation des planetes          
 def generer_carte():
     # Choix du nbr de planetes à créer
     nb_planetes=random.randint(NBR_PLANETE_MIN,NBR_PLANETE_MAX)
-    couleurs = [ROUGE,JAUNE,BLEU,ORANGE,WHITE]
     for planetes in range(nb_planetes):
         # Génération de la position du la nouvelle planete
         x_gen_planete = random.randint(-LIMITES_JEU[0],LIMITES_JEU[0])
         y_gen_planete = random.randint(-LIMITES_JEU[1],LIMITES_JEU[1])
+        #on  calcule la distance entre la planete et le spawn
         delta_x = x_gen_planete - position_player[0]
         delta_y = y_gen_planete -position_player[1]
         dist_spawn2 = delta_x**2 + delta_y**2
+        #on choisit une taille aleatoire pour la planete
         rayon = random.randint(RAYON_PLANETE_MIN,RAYON_PLANETE_MAX)
         
         #Si la nouvelle planete est au moins à une certaine distance du spawn du vaisseau
         if dist_spawn2 >= (rayon+(dimensions_fenetre[0]+dimensions_fenetre[1])/4)**2:
+            #une planete plus grande est plus massive
             masse = rayon*rayon*3
-            couleur_planete = random.choice(couleurs)
+            #on donne une image aleatoire à la planete
             choix_images_planete = random.choice(planetes_images)
+            #on la redimensionne en fonction du rayon
             photo_planete=pygame.transform.scale(choix_images_planete,(rayon*2,rayon*2))
             peut_placer=True
             
@@ -479,32 +506,38 @@ def generer_carte():
                 if dist_planetes2 <distance_min**2:
                     peut_placer = False
             if peut_placer:
-                
+                #on cree la planete et on l ajoute a la scene
                 planete = nouvelle_entite("planete",[x_gen_planete,y_gen_planete],rayon,masse,photo_planete)
                 ajouteEntite(scene["planetes"],planete)
 
-
+#generation des etoiles
 def generer_fond_etoile():
+    #on cree un nombre d image aleatoire
     for etoiles in range (NOMBRE_ETOILES):
+        #on les genere a une position aleatoire dans les limites de la map
         x_gen_etoiles = random.randint(-LIMITES_JEU[0],LIMITES_JEU[0])
         y_gen_etoiles = random.randint(-LIMITES_JEU[1],LIMITES_JEU[1])
+        #on cree l etoile et on l ajoute a la scene
         etoile = nouvelle_etoile([x_gen_etoiles,y_gen_etoiles])
         ajouteEntite(scene["etoiles"], etoile)
 
-
 #fonctions d'affichage
+
 def afficher_planete(planete):
+    #on recupere l image de la planete
     photo_planete = planete['image']
-    position = pygame.Rect(planete['position'][0]-planete['rayon'],planete['position'][1]-planete['rayon'],2*planete['rayon'],2*planete['rayon'])
+    #on recupere sa position par rapport au centre de son rectangle(=image)
+    position = photo_planete.get_rect(center =(planete["position"]))
+    #on l affiche aux coordonné calculé
     fenetre.blit(photo_planete,position)
     return
 
-
 def afficher_vaisseau(vaisseau):
+    #si le vaisseau est un player 
     x,y = vaisseau["position"]
     if vaisseau["type"] == "player":
         x,y = x_player_ecran,y_player_ecran
-
+    # on verifie que l ennemi n est pas en animation (pour ne pas la casser)
     if vaisseau["type"] == "ennemi" and not estEnAnimation(vaisseau):
         if vaisseau["avance"]:
             prends_pose(vaisseau,"ship_avance")
@@ -512,195 +545,302 @@ def afficher_vaisseau(vaisseau):
             prends_pose(vaisseau,"ship_stop")
     
       #Il faut rajouter un moins sinon l'image du vaisseau tourne dans le mauvais sens
+      # (pygame.rotate pas dans le sens trigono)
     photo_vaisseau_r = pygame.transform.rotate(vaisseau["image"],-vaisseau["orientation"])
-    
+    #on calcule la nouvelle hit box du vaisseau apres la rotation d image
     vaisseau["rect"]= photo_vaisseau_r.get_rect(center = (x,y))
-    
+    #on l affiche aux coordone du centre du rect
     fenetre.blit(photo_vaisseau_r,vaisseau["rect"])
+    #si en mode DEBUG , on affiche la HIT BOX
     if debug:
         pygame.draw.rect(fenetre, ROUGE, vaisseau["rect"], 1)
 
-
 def afficher_missile(missile):
+    #on recupere l image du missile
     image_missile = missile["image"]
     if missile["type"] == "missile":
         x,y = missile["position"]
 
     #Il faut rajouter un moins sinon l'image du vaisseau tourne dans le mauvais sens
+    #meme chose que pour le vaisseau
     image_missile = pygame.transform.rotate(missile["image"],-missile["orientation"])
+    #on recupere la nouvelle HIT BOX , apres rotation
     missile["rect"] = image_missile.get_rect(center = (x,y))
+    #on affiche  aux coordone du centre du rect
     fenetre.blit(image_missile,missile["rect"])
+    #si en mode DEBUG , on affiche la HITBOX
     if debug:
         pygame.draw.rect(fenetre, ROUGE, missile["rect"], 1)
     
     return   
 
-
 def afficher_menu():
-    global nombre_vies,highscore,score
+    global nombre_vies,highscore,score,nouveau_meilleur_score
+
+    #on affiche le fond ainsi que le logo SPACE INVADERS
     fenetre.fill(couleur_fond)
     fenetre.blit(images_menu,(0,0))
     fenetre.blit(image_titre,(10,50))
     temps_titre = pygame.time.get_ticks()
+    
+    #si le nouveau score est superieur , on update le meuilleur score
     if score >highscore:
         highscore = score
-    texte_meilleur_score = police.render(("HIGHSCORE :"+str(highscore)),True,WHITE)
-    texte_meilleur_score_coord = texte_meilleur_score.get_rect(center=(dimensions_fenetre[0]/2,dimensions_fenetre[1]/30))
-    score = 0
+        nouveau_meilleur_score = True
+        
+    
+    #on centre le texte du meuilleur score au centre haut de l ecran
+    texte_meilleur_score = police.render(("HIGHSCORE :"+str(highscore)),True,JAUNE)
+    texte_score= police.render(("TON SCORE :"+str(score)),True,WHITE)
+    texte_meilleur_score_coord = texte_meilleur_score.get_rect(center=(dimensions_fenetre[0]/2,2*dimensions_fenetre[1]/30))
+    texte_score_coord = texte_score.get_rect(center=(dimensions_fenetre[0]/2,dimensions_fenetre[1]/30))
+    
+    #si on a encore des vies
     if nombre_vies>0:
+        #on fait clignoter le texte COMMENCE et le texte record battu
         if (temps_titre//1000)%3!=0:
-
+            if nouveau_meilleur_score:
+                texte_nouveau_record = police.render(("RECORD BATTU!!"),True,ROUGE)
+                texte_nouveau_record_coord = texte_nouveau_record.get_rect(center=(dimensions_fenetre[0]/2-150,2*dimensions_fenetre[1]/30))
+                fenetre.blit(texte_nouveau_record,texte_nouveau_record_coord)
             commenceJouer= police.render(("Appuyez sur espace pour commencer"), True, JAUNE)
             commenceJouer = pygame.transform.scale(commenceJouer,(2*dimensions_fenetre[0]/3,dimensions_fenetre[1]/14))
             fenetre.blit(commenceJouer,(dimensions_fenetre[0]/6,300))
 
+        #on affiche les raccourcis
         text_controls = police.render(("Controler le vaisseau avec Z et le curseur de souris"), True, WHITE)
         text_controls = pygame.transform.scale(text_controls,(9*dimensions_fenetre[0]/10,dimensions_fenetre[1]/17))
         fenetre.blit(text_controls,(dimensions_fenetre[0]/20,400))
         
-        text_shoot = police.render(("Tirez avec un click de la souris"), True, WHITE)
+        text_shoot = police.render(("Tirez avec un clic de la souris"), True, WHITE)
         text_shoot = pygame.transform.scale(text_shoot,(4*dimensions_fenetre[0]/5,dimensions_fenetre[1]/17))
         fenetre.blit(text_shoot,(dimensions_fenetre[0]/10,500))
 
        
-        
+        #on affiche le nombre de vie centrée
         for i in range(nombre_vies):
-            fenetre.blit(image_coeur,(dimensions_fenetre[0]/2-(nombre_vies/2)*dimensions_fenetre[0]/10+i*dimensions_fenetre[0]/10,dimensions_fenetre[1]-200))
+           fenetre.blit(image_coeur,(dimensions_fenetre[0]/2-(nombre_vies/2)*dimensions_fenetre[0]/10+i*dimensions_fenetre[0]/10,dimensions_fenetre[1]-200))
+
+    #si on a plus de vie        
     if nombre_vies <=0:
         texte_game_over = police.render(("GAME OVER"),True , ROUGE)
         texte_game_over = pygame.transform.scale(texte_game_over,(4*dimensions_fenetre[0]/5,dimensions_fenetre[1]/15))
         fenetre.blit(texte_game_over,(dimensions_fenetre[0]/10,dimensions_fenetre[1]/2))
         
-
+    #on affiche le score apres la premiere partie
     if nombre_vies<NOMBRE_VIES_INIT:
             fenetre.blit(texte_meilleur_score,texte_meilleur_score_coord)
+            fenetre.blit(texte_score,texte_score_coord)
+    
+    
             
-            
-
-
 def affiche(scene,delta_pos):
+    #on ennumere chaque entite dans scene
     for key in scene.keys():
         for entite in scene[key]:
             
             
             if key == "player":
+                #si l entite est le vaisseau , on l affiche
+                #si il est mort , on anime
                 afficher_vaisseau(player)
                 animation_mort_globale(entite,scene["player"])
             else:
+                #on deplace chaque entite par rapport au vaisseau
                 entite["position"][0] += delta_pos[0]
                 entite["position"][1] += delta_pos[1]
                 rayon = 0
+                #on verifie que l entite a bien un rayon
                 if "rayon" in entite:
                     rayon = entite["rayon"]
+                #on anime chaque entite (SI il sont mort , puis on les detruit)
                 if key =="missiles":
+                    afficher_missile(entite)
                     animation_mort_globale(entite,scene["missiles"])
+                    
                 if key =="ennemis":
+                    afficher_vaisseau(entite)
                     animation_mort_globale(entite,scene["ennemis"])
+                    
                 
             #Culling
+
+            #on calcule la distance de l'entite par rapport au centre de l ecran
             distance_entite_x = abs(entite["position"][0] - x_player_ecran)-rayon
             distance_entite_y = abs(entite["position"][1] - y_player_ecran) - rayon
+            #si l entite est dans la fenetre alors on l affiche
             if distance_entite_x <= distance_bord_ecran_x and distance_entite_y <= distance_bord_ecran_y:
                 if key == "planetes":
                     afficher_planete(entite)
                 elif key == "etoiles":
+                    #pour chaque etoile , on dessine un cercle blanc
                     pygame.draw.circle(fenetre,WHITE,(entite["position"][0],entite["position"][1]),1)
-                elif key == "ennemis":
-                    afficher_vaisseau(entite)
-                elif key == "missiles":
-                    afficher_missile(entite)
+            
+
+    #si on est en mode DEBUG on affiche les donnés du vaisseau 
     if debug:
-        afficher_text_debug()                   
+        afficher_text_debug()
+
+    #on centre le score en haut de l ecran puis on l affiche                   
     texte_score = police.render("score: "+str(score),True , WHITE)
     texte_score_coord = texte_score.get_rect(center=(dimensions_fenetre[0]/2,dimensions_fenetre[1]/30))
     fenetre.blit(texte_score ,texte_score_coord)
-
-    
+ 
 def afficher_text_debug():
+    #Ne s affiche que si le mode DEBUG est activé
+
+    #affiche la position du vaisseau
     coord_txt= police.render("X:" + str(round(position_player[0])) + ",Y:" + str(round(position_player[1])), True, WHITE)
     fenetre.blit(coord_txt, (0,0))
+    
+    #affiche son orientation
     angle_txt= police.render("Angle:" + str(round(orientation_player,2)) + " deg", True, WHITE)
     fenetre.blit(angle_txt, (0,15))
+
+    #affiche ses vitesses
     vx_txt= police.render("Vitesse X:" + str(round(player["vitesse_x"],2)), True, WHITE)
     fenetre.blit(vx_txt, (0,30))
     vy_txt= police.render("Vitesse Y:" + str(round(player["vitesse_y"],2)), True, WHITE)
     fenetre.blit(vy_txt, (0,45))
 
 #fonctions missiles
+
 def tir_cannon(entite):
+    #permet aux entite de tirer des missiles
+
+    #on verifie que l entite n a pas exploser
     if not  estEnAnimation(entite):
         global temps_avant_recharge
         temps_maintenant = pygame.time.get_ticks()
         delai = temps_maintenant-temps_avant_recharge
+        
+        #on evite a l entite de pouvoir tirer des missiles trop souvent
         if delai > delai_recharge:
+
+            #on recupere l orientation de l entite au moment ou elle tire
             orientation_missile = entite["orientation"]
+
+            #on recupere sa position
             x,y= entite["position"]
             if entite["type"] == "player":
                 x,y = x_player_ecran,y_player_ecran 
-                
+
+            #si le delai est respecte on permet le tir et on cree l entite
+            #on lui donne un delai de vie  pour l autodestruction (=200 ticks ~9sec)
             missile = nouvelle_entite('missile',[x,y],RAYON_VAISSEAU/2,1000,None,orientation_missile,0,0,900,200)
+
+            #on dit au missiles par qui il a ete tiré
             missile["tireur"]= entite["type"]
+
+            #on transforme l'orientation en radian
             angle_rad_missile = math.radians(orientation_missile)
+
+            #on additionne la vitesse du missile a la vitesse de l entite
+            # (pour quele missile aille plus vite que l entite)
             missile['vitesse_x'] = entite["vitesse_x"] + VITESSE_MISSILE_INIT*math.cos(angle_rad_missile)
             missile['vitesse_y'] = entite["vitesse_y"] + VITESSE_MISSILE_INIT*math.sin(angle_rad_missile)
+
+            #on lui donne les poses de mort 
             for index,item in enumerate(explosion_nom_poses):
                 ajoute_pose(missile,item,explosion_images[index])
+
+            #on lui donne sa pose initiale ( la texture du missile)
             ajoute_pose(missile,"missile",missile_images[len(missile_images)-1])
             prends_pose(missile,'missile')
+
+            #on ajoute le missile a la scene et on lui donne l animation de mort
             ajouteEntite(scene["missiles"],missile)
+            explosion_taille(missile,2)
             ajouteAnimation(missile,'animation_mort',cree_anim_mort())
+
+            #on reinitialise son temp de recharge ( pour un nouveau delai)
             temps_avant_recharge = temps_maintenant
     return
+
 def autodestruction_missile(missile):
+    #on recupere le temps restant du missile
     delai_vie  = missile["duree_vie"]
-    if (delai_vie<=0 and estEnAnimation(missile)==0) :
+    
+    #si il ne reste plus de temps au missiles , il sautodetruit, et commence l animation de mort
+    #on verifie egalement que ce missile n est pas deja mort
+    if (delai_vie<=0 and not estEnAnimation(missile)) :
             commenceAnimation(missile,'animation_mort',1)
     return
+
 def mise_a_jour_etat_missile(delta_t):
+    #on enumere chaque missile dans la scene
     for missile in scene['missiles']:
+
+        #on les empeche de bouger si il sont mort
         if not estEnAnimation(missile):
+
+            # on calcule leur vecteur acceleration
             a_planete_x , a_planete_y = calcul_gravite_planete(missile)
+
+            #on les deplace par rapport a leur vitesse (en plus de delta pos )
             missile["vitesse_x"]+=a_planete_x*delta_t*FACTEUR_GRAVITE_MISSILE
             missile["vitesse_y"]+=a_planete_y*delta_t*FACTEUR_GRAVITE_MISSILE
 
             missile["position"][0]+=missile["vitesse_x"]*delta_t
             missile["position"][1]+=missile["vitesse_y"]*delta_t
             missile["duree_vie"]-=1
-
+            
+            #on gere leurs collision avec les planetes
             collision_planetes(missile)
+
+            #on verifie qu il peuvent encore etre en vie
             autodestruction_missile(missile)
 
+def calcul_delta_t():
+    global dernier_temps_missiles
+    #calcul du delta_temps pour la mise a jour position
+    temps_maintenant = pygame.time.get_ticks()
+    delta_t_missile = temps_maintenant-dernier_temps_missiles
+    dernier_temps_missiles = pygame.time.get_ticks()
+    return delta_t_missile
 #fonctions collisions
+
 def collision_planetes(entite):
     global scene
-
+    #on recupere la position de l entite
     xp,yp = entite["position"]
     index_planete_proche = 0
     min_dist = float(math.inf)
-    #on parcours toutes les planetes
+
+    #on parcours toutes les planetes et on recupere leurs position
     for index, planete in enumerate(scene["planetes"]):
         x_planete , y_planete = planete["position"]
+
+        #on calcule la distance entre l entite et la planete
         delta_x = x_planete-xp
         delta_y = y_planete-yp
+
         #distance au carré entre la planete et l'entite
         r2 = delta_x**2 + delta_y**2
+
+        #detection de la distance pour collision
         rayon_total = planete["rayon"]+RAYON_VAISSEAU
 
+        #si l entite est un ennemi ( cette partie est utilisé pour son IA)
         if entite["type"] == "ennemi":
+
             # On cherche la planete la plus proche de l'ennemi
             #la distance entre le bord de la planete et le bord de l'entite
+
             distance_planete = abs(math.sqrt(r2)-rayon_total)
             if distance_planete < min_dist and distance_planete>0:
                 min_dist = distance_planete
                 index_planete_proche = index
             
+            #si la collision est detecté et que l ennemi n est pas deja mort
             if r2 <= rayon_total**2 and not estEnAnimation(entite):
                 commenceAnimation(entite,"animation_mort",1)
 
-        if (entite["type"] == "player" or entite["type"] == "missile") and r2 <= rayon_total**2:
+        #si l'entite est un missile ou le vaisseau joeur , que la collision est detecté et qu il n est pas deja mort
+        if (entite["type"] == "player" or entite["type"] == "missile") and r2 <= rayon_total**2 and not estEnAnimation(entite):
             commenceAnimation(entite,"animation_mort",1)
 
-    # on retourne l'index de la planete la plus proche de l'ennemi
+    # on retourne l'index de la planete la plus proche de l'ennemi(Pour IA ennemi)
     return index_planete_proche
     
 def collision_missiles():
@@ -721,52 +861,63 @@ def collision_missiles():
                     if temps_maintenant-missile["temps_spawn"]>=200 and missile["temps_spawn"]!=entite["temps_spawn"] \
                         and missile["rect"].colliderect(entite["rect"]) and not estEnAnimation(missile) and not estEnAnimation(entite):
 
-                        if entite["type"] == "player":
-                            return
-                            stop_vaisseau(player)
+                        #si deux missiles se detruisent entre eux
                         if entite["type"] == "missile":
 
                             commenceAnimation(missile,"animation_mort",1)
+
+                        #si la collision est entre un missile et une autre entite(l explosition ne sera que pour l entite)
                         else:
                             destroy_entite(scene["missiles"],missile)
                         commenceAnimation(entite,"animation_mort",1)
+
+                        #si un ennemi est tué , et que le missile a ete tiré par le joeur , on augmente le score
                         if entite["type"] == "ennemi" and missile["tireur"]=="player":
                             score =score+1000
 
 def collision_vaisseaux():
+    #collsion entre deux vaisseau ennemis
     for vaisseau in scene["ennemis"]:
-
         for ennemi in scene["ennemis"]:
+            #si on ne compare pas le vaisseau avec lui meme(eviter qu il se detruise direct)
+            #on verifie que il ne sont pas deja mort
             if vaisseau["rect"].colliderect(ennemi["rect"]) and vaisseau["temps_spawn"] != ennemi["temps_spawn"] \
                 and not estEnAnimation(vaisseau) and not estEnAnimation(ennemi):
                 commenceAnimation(vaisseau,"animation_mort",1)
                 commenceAnimation(ennemi,"animation_mort",1)
-        
+        #collision entre le joeur et les ennemis
+        #on verifie egalement que les entites ne sont pas deja mortes
         if player["rect"].colliderect(vaisseau["rect"]) and not estEnAnimation(player) and not estEnAnimation(vaisseau):
                 commenceAnimation(player,"animation_mort",1)
                 commenceAnimation(vaisseau,"animation_mort",1)
 
-
-
 #fonctions (autres)
+
 def gerer_touche(event):
     global player_avance
-    global orientation_player
     global enjeu
+    global dernier_temps_missiles
     global debug
+    global score
+    #si on appuie sur la croix
     if event.type == pygame.QUIT:
             musique.stop()  
             pygame.display.quit()
             pygame.quit()
             exit()
+
+    #si clic souris
     if event.type == pygame.MOUSEBUTTONDOWN :
         tir_cannon(player)
+
+    #si on est deja en jeu
     if enjeu:
         if event.type == pygame.KEYDOWN or event.type == pygame.KEYUP:
             if not estEnAnimation(player):
                 key = event.key
                 match key:
                     case pygame.K_z:
+
                         #  Le player avance tant que la touche n'est pas lachée
                         if event.type == pygame.KEYDOWN:
                             player_avance = allume_moteur(player_avance)    
@@ -776,23 +927,30 @@ def gerer_touche(event):
                         stop_vaisseau(player)
                     case pygame.K_t :
                         tir_cannon(player)
+
+                    #autodestruction du vaisseau
                     case pygame.K_o:
                         commenceAnimation(player,"animation_mort",1)
+
+                    #activation mode debug
                     case pygame.K_a:
                         if debug:
                             debug = False
                         elif debug == False:
                             debug = True
+    
+    #on appuie sur espace pour commencer le jeu
     elif not enjeu and event.type == pygame.KEYDOWN and event.key == pygame.K_SPACE:
         enjeu = True
+        score = 0
         temps_reset =pygame.time.get_ticks()
+
+        #avant de reccomencer , on reset tout les temps a 0
         for key in scene:
             for entite in scene[key]:
                 entite["temps_avant"]=temps_reset
         dernier_temps_missiles = temps_reset    
         
-
-
 def ai_ennemi(ennemi):
     #Distance au carré entre l'ennemi et le player
     delta_x_player = x_player_ecran-ennemi["position"][0]
@@ -821,6 +979,8 @@ def ai_ennemi(ennemi):
     rayon_total = planete["rayon"]+RAYON_VAISSEAU
     distance_planete = abs(math.sqrt(distance2_centre_planete)-rayon_total)
 
+    #si on est en mode DEBUG , on affiche le rayon de retournement du vaisseau, 
+    # la ligne entre le vaisseau et la planete et la ligne entre le vaisseau et le joueur
     if debug:
         # dessin des aides visuelles pour l'ia
         pygame.draw.circle(fenetre, ROUGE, planete["position"],rayon_total+DISTANCE_REVERSE_PLANETE, 3)
@@ -831,7 +991,7 @@ def ai_ennemi(ennemi):
         else:
             pygame.draw.line(fenetre,ORANGE,ennemi["position"],[x_player_ecran,y_player_ecran], 3)
 
-
+    #la force des ennemis , est la force du moteur
     force_ennemi = 0
     if ennemi["avance"]:
         force_ennemi = FORCE_ENNEMIS
@@ -864,20 +1024,24 @@ def ai_ennemi(ennemi):
 
 
     ennemi["orientation"] = orientation_ennemi
+    #on calcule son deplacement independant du joueur , et on l applique
     delta_pos = get_delta_pos(ennemi,pygame.time.get_ticks(),force_ennemi,orientation_ennemi)
     ennemi["position"][0] -= delta_pos[0]
     ennemi["position"][1] -= delta_pos[1]
 
+#a corriger un peu bizarre
 def spawn_enemis():
     global dernier_spawn_ennemi
 
-
+    # on determine le nombre d ennemi deja present dans la scene
     nbr_ennemis = len(scene["ennemis"])+1
 
     spawn_random = random.randint(1,20)
     spawn_time = pygame.time.get_ticks()//1000 #en secondes piles
 
-
+    #on a une chance sur 20 de faire spawn un ennemi a chaque iteration si:
+    #le mob cap n est pas atteint
+    #que l on a pas deja spawn un ennemi 
     if nbr_ennemis<=NBR_ENNEMIS_MAX and dernier_spawn_ennemi!=spawn_time and spawn_random==1 and (spawn_time%TEMPS_SPAWN_ENNEMIS_MIN)==0:
         dernier_spawn_ennemi = spawn_time
 
@@ -885,6 +1049,8 @@ def spawn_enemis():
         x=0
         y=0
         cote = 0
+
+        #on choisit le cote ou l ennemi spawn et on choisit une coordoné
         match random.randint(1,4):
             case 1:
                 #Côté haut
@@ -907,20 +1073,21 @@ def spawn_enemis():
                 x = -(RAYON_VAISSEAU*3)
                 y = random.randint(0,dimensions_fenetre[1])
          
-
+        # on empeche a un ennemi de spawn sur une planete
         for planete in scene["planetes"]:
             delta_x = x-planete["position"][0] 
             delta_y = y-planete["position"][1]
             distance2_planete = delta_x**2 + delta_y**2
-            if distance2_planete<= planete["rayon"] + DISTANCE_REVERSE_PLANETE + RAYON_VAISSEAU:
+            if distance2_planete<= (planete["rayon"] + DISTANCE_REVERSE_PLANETE + RAYON_VAISSEAU)**2:
                 if cote == 1 or cote == 3:
                     x += planete["rayon"] + DISTANCE_REVERSE_PLANETE + RAYON_VAISSEAU
                 elif cote == 2 or cote == 4:
                     y += planete["rayon"] + DISTANCE_REVERSE_PLANETE + RAYON_VAISSEAU 
 
+        #on cree l ennemi
         ennemi = nouvelle_entite("ennemi",[x,y],RAYON_VAISSEAU,3000,None,0.3,0,0,VITESSE_MAX_ENNEMIS,DUREE_VIE_ENNEMIS)
         
-        
+        #on lui donne ses images
         for image in ennemis_images:
             loaded_image = pygame.image.load('images/ennemis/' + image).convert_alpha(fenetre)
             loaded_image = pygame.transform.scale(loaded_image,(ennemi["rayon"]*2,ennemi["rayon"]*2))
@@ -928,10 +1095,11 @@ def spawn_enemis():
         for index,item in enumerate(explosion_images):
                 ajoute_pose(ennemi,item,explosion_images[index])
         prends_pose(ennemi,"ship_stop")
+
+        #on lui donne son animation de mort,redimensionne son explosion, et l ajoute a la scene
         ajouteAnimation(ennemi,'animation_mort',cree_anim_mort())
         explosion_taille(ennemi,2)
         ajouteEntite(scene["ennemis"],ennemi)
-
 
 def despawn_ennemis():
      #Supprime tous les ennemis qui ont été hors de l'écran pendant un certain temps
@@ -944,9 +1112,10 @@ def despawn_ennemis():
                 destroy_entite(scene["ennemis"],ennemi)
         else:
             ennemi["duree_vie"] = DUREE_VIE_ENNEMIS
-
+#fin a corriger
 
 def reset_jeu():
+    #fonction de reset du jeu , apres chaque mort
     global enjeu
     global nombre_vies
     global highscore,score
@@ -965,8 +1134,7 @@ def reset_jeu():
     "ennemis":[]
     }
 
-    #on genere la carte
-    
+    #on cree le vaisseau , et on reset ses variables 
     cree_vaisseau()
     player["position"]= dimensions_fenetre[0]/2,dimensions_fenetre[1]/2
     player["vitesse_x"]=0
@@ -979,77 +1147,64 @@ def reset_jeu():
     player["animationActuelle"]=None
     position_player = x_player_ecran,y_player_ecran
 
+    #on genere une nouvelle map et un nouveau fond
     generer_carte()
     generer_fond_etoile()
     
+    #si le nombre de vies vaut 0, on reset le score , le meuilleur score , et on redonne 3 vies
     if nombre_vies == 0:
         nombre_vies = NOMBRE_VIES_INIT
         highscore = 0
         score = 0
-    
-    
-    
-    
-
     return
 
+#initialisation du jeu, on cree la map , le joueur etc
 
-
-
-# Création du vaisseau
-distance_bord_ecran_x = abs(x_player_ecran+RAYON_VAISSEAU)
-distance_bord_ecran_y = abs(y_player_ecran+RAYON_VAISSEAU)
-
-
-cree_vaisseau()
-generer_carte()
-generer_fond_etoile()
-dernier_temps_missiles = pygame.time.get_ticks()
-
-
-musique = pygame.mixer.Sound("sons/musique_fond.wav")
-musique.play(loops=-1)
+reset_jeu()
 
 ### Boucle de jeu ###
 while True:
     for event in pygame.event.get():
             gerer_touche(event)
+    #boucle principale
     if enjeu:
-        temps_maintenant = pygame.time.get_ticks()
-        delta_t_missile = temps_maintenant-dernier_temps_missiles
-        dernier_temps_missiles = pygame.time.get_ticks()
-        mouse_x,mouse_y = pygame.mouse.get_pos()
-        delta_mouse_x, delta_mouse_y = mouse_x-x_player_ecran, mouse_y-y_player_ecran
-        
-        # Calcul du nouvel angle du vaisseau par rapport à la position de la souris (modulo 360)
-        if not estEnAnimation(player):
-            angle_rad = math.atan2(delta_mouse_y,delta_mouse_x)
-            orientation_player = (math.degrees(angle_rad))%360
-            player["orientation"] = orientation_player
-        if player_avance:
-            force_player = puissance_player
-        else:
-            force_player = 0
-        fenetre.fill(couleur_fond)
 
+        delta_pos = [0,0]     
+        
+        #on gere les entite
+        fenetre.fill(couleur_fond)
+        nouvelle_orientation_vaisseau_player()
         spawn_enemis()
         despawn_ennemis()
+        mise_a_jour_etat_missile(calcul_delta_t())
+
         for ennemi in scene["ennemis"]:
             if not estEnAnimation(ennemi):
                 ai_ennemi(ennemi)
 
-        mise_a_jour_etat_missile(delta_t_missile)
-        delta_pos = [0,0]        
+        if player_avance:
+            force_player = puissance_player
+        else:
+            force_player = 0
+
+
+        
+        #on gere les deplacement
         if not estEnAnimation(player):
             delta_pos = get_delta_pos(player,pygame.time.get_ticks(),force_player,orientation_player)
-        
-        affiche(scene, delta_pos)
-       # gerer_collision_generale()
+
+        #on gere les collisions
         collision_planetes(player)
         collision_missiles()
         collision_vaisseaux()
+        
+        #on affiche le tout
+        affiche(scene, delta_pos)
+
+       
     if not enjeu:
+        #on affiche l ecran d attente
         afficher_menu()
-          
+    #on raffraichit l image
     pygame.display.flip()
     horloge.tick(images_par_seconde)
