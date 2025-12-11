@@ -120,31 +120,24 @@ for image_planete in list_planetes_images:
 explosion_images = []
 explosion_nom_poses = ["explosion_1","explosion_2","explosion_3"]
 for nom_fichier in explosion_nom_poses:
-    image_explosion = pygame.image.load('images/'+nom_fichier + ".png").convert_alpha(fenetre)
+    image_explosion = pygame.image.load('images/explosion/'+nom_fichier + ".png").convert_alpha(fenetre)
     image_explosion = pygame.transform.scale(image_explosion,(RAYON_VAISSEAU,RAYON_VAISSEAU))
     explosion_images.append(image_explosion)
 
-#on ajoute
-
-
+#on ajoute aux ses images de mort et sa texture
 missile_images = explosion_images
-image_missile = pygame.image.load("images/missile.png").convert_alpha(fenetre)
+image_missile = pygame.image.load("images/missile/missile.png").convert_alpha(fenetre)
 image_missile = pygame.transform.scale(image_missile,(RAYON_VAISSEAU,RAYON_VAISSEAU))
 missile_images.append(image_missile)
 
-
-    
-
-
-
-images_menu = pygame.image.load('images/menu_fond.png').convert_alpha(fenetre)
-image_titre = pygame.image.load('images/menu_titre.png').convert_alpha(fenetre)
+#on load toutes les images pour le menu et on redimensionne
+images_menu = pygame.image.load('images/menu/menu_fond.png').convert_alpha(fenetre)
+image_titre = pygame.image.load('images/menu/menu_titre.png').convert_alpha(fenetre)
 image_titre= pygame.transform.scale(image_titre,(dimensions_fenetre[0],dimensions_fenetre[1]/2))
-image_coeur = pygame.image.load('images/vie_joueur.png').convert_alpha(fenetre)
+image_coeur = pygame.image.load('images/menu/vie_joueur.png').convert_alpha(fenetre)
 image_coeur= pygame.transform.scale(image_coeur,(dimensions_fenetre[0]/10,dimensions_fenetre[0]/10))
 
-
-# Fonctions animation
+# Fonctions generale animation
 def mouvement(nom,duree):
     return (nom,duree)
 
@@ -228,14 +221,16 @@ def prends_pose(entite,nom_pose):
 def estEnAnimation(entite):
     return entite['animationActuelle']!=None
 
-def animation_missile():
-
+#creation de l animation de mort des entite
+def cree_anim_mort():
+    #on ajoute les mouvement a l animation
     animation_mort = nouvelleAnimation()
     ajouteMouvement(animation_mort,mouvement('explosion_1',200))
     ajouteMouvement(animation_mort,mouvement('explosion_2',200))
     ajouteMouvement(animation_mort,mouvement('explosion_3',500))
     return animation_mort
 
+#gerer l animation de mort
 def animation_mort_globale(entite,scene):
     global enjeu,nombre_vies
     if entite['animationActuelle']!=None:
@@ -246,14 +241,19 @@ def animation_mort_globale(entite,scene):
                         if nouvellePose == None:
                             entite['animationActuelle'] = None
                             if entite["type"]== "player":
+                                #si l entite est le vaissseauu du joeur
+                                #on reset le jeu et on enleve une vie
+                    
                                 reset_jeu()
                                 nombre_vies -=1
+                            #on detruit l entite qui n as plus de pose
                             destroy_entite(scene,entite)
                                 
                             if poseActuelle != None:
                                 prends_pose(entite,poseActuelle)
                         else:
                             prends_pose(entite,nouvellePose)
+
 #fonction generale entite
 def nouvelle_entite(type_entite,position_entite,rayon_entite,masse_entite,image=None,orientation_entite=None,vitesse_x_entite=None,vitesse_y_entite=None,vitesse_max=1,delai_vie=None):
     return{
@@ -280,13 +280,15 @@ def nouvelle_entite(type_entite,position_entite,rayon_entite,masse_entite,image=
      'temps_spawn':pygame.time.get_ticks(),
      'tireur':""
     }
+
 def destroy_entite(scene,entite):
     if entite in scene:
         scene.remove(entite)
 
 def ajouteEntite(scene, entite):
     scene.append(entite)
-    
+
+#fonction qui redimensionne la taille de l explosion en fonction de l entite    
 def explosion_taille(entite,facteur_explosion):
     explosion_taille =entite["rayon"]*2*facteur_explosion
     explosion_enti_1 = pygame.transform.scale(explosion_images[0],(explosion_taille,explosion_taille))
@@ -300,31 +302,37 @@ def explosion_taille(entite,facteur_explosion):
 def cree_vaisseau():
     global player
     player_images =['player_avance.png','player_stop.png']
-
+    #on cree le vaisseau
     player = nouvelle_entite('player',[x_player_ecran,y_player_ecran],RAYON_VAISSEAU,masse_player,None,orientation_player,0,0) #player["position"] est la position fixe à l'écran
+    #on lui ajoute les poses du moteur
     for image in player_images:
-        loaded_image = pygame.image.load('images/' + image).convert_alpha(fenetre)
+        loaded_image = pygame.image.load('images/player/' + image).convert_alpha(fenetre)
         loaded_image = pygame.transform.scale(loaded_image,(RAYON_VAISSEAU*2,RAYON_VAISSEAU))
         ajoute_pose(player,image.replace(".png", ""),loaded_image)
+    #on redimensionne ses imaages de mort
     explosion_taille(player,2)
+    #on lui donne la posse vaisseauu eteint
     prends_pose(player,"player_stop")
+    #on ajoute l entite a la scene et on lui donne son animation de fin
     ajouteEntite(scene["player"],player)
-    ajouteAnimation(player,"animation_mort",animation_missile())
+    ajouteAnimation(player,"animation_mort",cree_anim_mort())
     return 
 
 def allume_moteur(player_avance):
-    
+    #donne la pose avec flamme au vaisseau
     if player_avance==False:
         player_avance = True
         prends_pose(player,"player_avance")
     return player_avance
 
 def eteint_moteur(player_avance):
+    #on redonne la pose intiale au vaisseau
     player_avance = False
     prends_pose(player,"player_stop")
     return player_avance
 
 def stop_vaisseau(vaisseau):
+    #on stoppe entierement le vaisseau (DEBUG)
     get_delta_pos(vaisseau,pygame.time.get_ticks(),0,orientation_player,True)
 
 #fonction de deplacement
@@ -640,7 +648,7 @@ def tir_cannon(entite):
             ajoute_pose(missile,"missile",missile_images[len(missile_images)-1])
             prends_pose(missile,'missile')
             ajouteEntite(scene["missiles"],missile)
-            ajouteAnimation(missile,'animation_mort',animation_missile())
+            ajouteAnimation(missile,'animation_mort',cree_anim_mort())
             temps_avant_recharge = temps_maintenant
     return
 def autodestruction_missile(missile):
@@ -764,7 +772,7 @@ def gerer_touche(event):
                             player_avance = allume_moteur(player_avance)    
                         elif event.type == pygame.KEYUP:
                             player_avance = eteint_moteur(player_avance)
-                    case pygame.K_e:
+                    case pygame.K_n:
                         stop_vaisseau(player)
                     case pygame.K_t :
                         tir_cannon(player)
@@ -920,7 +928,7 @@ def spawn_enemis():
         for index,item in enumerate(explosion_images):
                 ajoute_pose(ennemi,item,explosion_images[index])
         prends_pose(ennemi,"ship_stop")
-        ajouteAnimation(ennemi,'animation_mort',animation_missile())
+        ajouteAnimation(ennemi,'animation_mort',cree_anim_mort())
         explosion_taille(ennemi,2)
         ajouteEntite(scene["ennemis"],ennemi)
 
@@ -1045,7 +1053,3 @@ while True:
           
     pygame.display.flip()
     horloge.tick(images_par_seconde)
-    
-
-  
-    
