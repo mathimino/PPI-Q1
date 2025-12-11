@@ -2,8 +2,6 @@ import math
 import pygame
 import sys
 import random
-import os
-
 ##### Constantes #####
 
 NOIR = (0, 0, 0)
@@ -105,7 +103,8 @@ police = pygame.font.SysFont('monospace', dimensions_fenetre[1]//50, True)
 
 # Création de listes contenant les images de leur répertoirs respectifs
 planetes_images = []
-for image_planete in os.listdir("images/planetes/"):
+list_planetes_images = ["jupiter.png","mars.png","mercure.png","neptune.png","saturne.png","terre.png","uranus.png","venus.png"]
+for image_planete in list_planetes_images:
     planetes_images.append(pygame.image.load('images/planetes/' + image_planete).convert_alpha(fenetre))
 
 missile_nom_pose = ['missile_vie','missile_mort_anim_1','missile_mort_anim_2','missile_mort_anim_3']
@@ -525,9 +524,9 @@ def afficher_menu():
     if nombre_vies>0:
         if (temps_titre//1000)%3!=0:
 
-            commenceJouer= police.render(("Appuyez pour commencer"), True, JAUNE)
-            commenceJouer = pygame.transform.scale(commenceJouer,(dimensions_fenetre[0]/2,dimensions_fenetre[1]/14))
-            fenetre.blit(commenceJouer,(dimensions_fenetre[0]/4,300))
+            commenceJouer= police.render(("Appuyez sur espace pour commencer"), True, JAUNE)
+            commenceJouer = pygame.transform.scale(commenceJouer,(2*dimensions_fenetre[0]/3,dimensions_fenetre[1]/14))
+            fenetre.blit(commenceJouer,(dimensions_fenetre[0]/6,300))
 
         text_controls = police.render(("Controler le vaisseau avec Z et le curseur de souris"), True, WHITE)
         text_controls = pygame.transform.scale(text_controls,(9*dimensions_fenetre[0]/10,dimensions_fenetre[1]/17))
@@ -740,7 +739,7 @@ def gerer_touche(event):
                             debug = False
                         elif debug == False:
                             debug = True
-    elif not enjeu and (event.type == pygame.KEYDOWN or event.type == pygame.KEYUP):
+    elif not enjeu and event.type == pygame.KEYDOWN and event.key == pygame.K_SPACE:
         enjeu = True
         temps_reset =pygame.time.get_ticks()
         for key in scene:
