@@ -52,7 +52,8 @@ pose =0
 FACTEUR_GRAVITE_MISSILE = 3
 global enjeu
 enjeu = False
-
+global debug
+debug = False
 
 # player
 #coordonnés du player dans le repere écran
@@ -491,7 +492,8 @@ def afficher_vaisseau(vaisseau):
     vaisseau["rect"]= photo_vaisseau_r.get_rect(center = (x,y))
     
     fenetre.blit(photo_vaisseau_r,vaisseau["rect"])
-    pygame.draw.rect(fenetre, ROUGE, vaisseau["rect"], 1)
+    if debug:
+        pygame.draw.rect(fenetre, ROUGE, vaisseau["rect"], 1)
 
 
 def afficher_missile(missile):
@@ -503,7 +505,8 @@ def afficher_missile(missile):
     image_missile = pygame.transform.rotate(missile["image"],-missile["orientation"])
     missile["rect"] = image_missile.get_rect(center = (x,y))
     fenetre.blit(image_missile,missile["rect"])
-    pygame.draw.rect(fenetre, ROUGE, missile["rect"], 1)
+    if debug:
+        pygame.draw.rect(fenetre, ROUGE, missile["rect"], 1)
     # if player["rect"].collidepoint(x,y):
     #     print("touche")
     
@@ -581,15 +584,10 @@ def affiche(scene,delta_pos):
                     afficher_vaisseau(entite)
                 elif key == "missiles":
                     afficher_missile(entite)
-           
+    if debug:
+        afficher_text_debug()                   
 
-                    
-                    
-
-
-                    
-
-                
+def afficher_text_debug():
     coord_txt= police.render("X:" + str(round(position_player[0])) + ",Y:" + str(round(position_player[1])), True, WHITE)
     fenetre.blit(coord_txt, (0,0))
     angle_txt= police.render("Angle:" + str(round(orientation_player,2)) + " deg", True, WHITE)
@@ -598,7 +596,6 @@ def affiche(scene,delta_pos):
     fenetre.blit(vx_txt, (0,30))
     vy_txt= police.render("Vitesse Y:" + str(round(player["vitesse_y"],2)), True, WHITE)
     fenetre.blit(vy_txt, (0,45))
-
 
 #fonctions missiles
 def tir_cannon(entite):
@@ -637,6 +634,8 @@ def mise_a_jour_etat_missile(delta_t):
             missile["position"][0]+=missile["vitesse_x"]*delta_t
             missile["position"][1]+=missile["vitesse_y"]*delta_t
             missile["duree_vie"]-=1
+
+            collision_planetes(missile)
             autodestruction_missile(missile)
 
 #fonctions collisions
@@ -666,12 +665,13 @@ def collision_planetes(entite):
             if r2 <= rayon_total**2 and not estEnAnimation(entite):
                 commenceAnimation(entite,"animation_mort",1)
 
-        if entite["type"] == "player" and r2 <= rayon_total**2:
+        if (entite["type"] == "player" or entite["type"] == "missile") and r2 <= rayon_total**2:
             commenceAnimation(entite,"animation_mort",1)
             # print()
 
     # on retourne l'index de la planete la plus proche de l'ennemi
     return index_planete_proche
+    
 def collision_missiles():
     # pour chaque missile
     temps_maintenant = pygame.time.get_ticks()
@@ -710,6 +710,7 @@ def gerer_touche(event):
     global player_avance
     global orientation_player
     global enjeu
+    global debug
     if event.type == pygame.QUIT:
             musique.stop()  
             pygame.display.quit()
@@ -734,7 +735,11 @@ def gerer_touche(event):
                         tir_cannon(player)
                     case pygame.K_o:
                         commenceAnimation(player,"animation_mort",1)
-                   
+                    case pygame.K_a:
+                        if debug:
+                            debug = False
+                        elif debug == False:
+                            debug = True
     elif not enjeu and (event.type == pygame.KEYDOWN or event.type == pygame.KEYUP):
         enjeu = True
         temps_reset =pygame.time.get_ticks()
@@ -773,14 +778,15 @@ def ai_ennemi(ennemi):
     rayon_total = planete["rayon"]+RAYON_VAISSEAU
     distance_planete = abs(math.sqrt(distance2_centre_planete)-rayon_total)
 
-    # dessin des aides visuelles pour l'ia
-    pygame.draw.circle(fenetre, ROUGE, planete["position"],rayon_total+DISTANCE_REVERSE_PLANETE, 3)
-    
-    pygame.draw.line(fenetre,(0,255,0),ennemi["position"],planete["position"], 3)
-    if distance2_player >= DISTANCE2_AVANCE_ENNEMIS:
-        pygame.draw.line(fenetre,(138,43,226),ennemi["position"],[x_player_ecran,y_player_ecran], 3)
-    else:
-        pygame.draw.line(fenetre,ORANGE,ennemi["position"],[x_player_ecran,y_player_ecran], 3)
+    if debug:
+        # dessin des aides visuelles pour l'ia
+        pygame.draw.circle(fenetre, ROUGE, planete["position"],rayon_total+DISTANCE_REVERSE_PLANETE, 3)
+        
+        pygame.draw.line(fenetre,(0,255,0),ennemi["position"],planete["position"], 3)
+        if distance2_player >= DISTANCE2_AVANCE_ENNEMIS:
+            pygame.draw.line(fenetre,(138,43,226),ennemi["position"],[x_player_ecran,y_player_ecran], 3)
+        else:
+            pygame.draw.line(fenetre,ORANGE,ennemi["position"],[x_player_ecran,y_player_ecran], 3)
 
 
     force_ennemi = 0
@@ -992,13 +998,13 @@ while True:
 
                 
         mise_a_jour_etat_missile(delta_t_missile)
-        
-
-        delta_pos = get_delta_pos(player,pygame.time.get_ticks(),force_player,orientation_player)
+        delta_pos = [0,0]        
+        if not estEnAnimation(player):
+            delta_pos = get_delta_pos(player,pygame.time.get_ticks(),force_player,orientation_player)
         
         affiche(scene, delta_pos)
        # gerer_collision_generale()
-        # collision_planetes(player)
+        collision_planetes(player)
         # print(player["rect"].colliderect(ennemi["rect"]))
         collision_missiles()
     if not enjeu:
