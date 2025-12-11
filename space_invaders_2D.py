@@ -16,7 +16,7 @@ WHITE = (255, 255, 255)
 RAYON_VAISSEAU = 20
 RAYON_PLANETE_MIN=100
 RAYON_PLANETE_MAX=300
-DIST_MIN_ENTRE_PLANETE = 300
+DIST_MIN_ENTRE_PLANETE = 400
 VITESSE_MISSILE_INIT = 0.5
 
 LIMITES_JEU = [10000,10000]
@@ -29,9 +29,9 @@ NBR_PLANETE_MIN = 750
 NBR_PLANETE_MAX=1000
 NOMBRE_ETOILES = 10000
 global nombre_vies
-nombre_vies = 1
+nombre_vies = 3
 NOMBRE_VIES_INIT=3
-highscore = 1000000
+highscore = 0
 
 
 ##### Fin constantes #####
@@ -68,8 +68,8 @@ vitesse_max_player = 1
 CPT_REVERSE = 50
 CPT_SHOT = 25
 VITESSE_MAX_ENNEMIS = 0.2
-DISTANCE_REVERSE_PLANETE = 75
-DISTANCE2_AVANCE_ENNEMIS = 160000 #400**2
+DISTANCE_REVERSE_PLANETE = 200
+DISTANCE2_AVANCE_ENNEMIS = 90000 #400**2
 FORCE_ENNEMIS = 0.3
 global dernier_spawn_ennemi
 dernier_spawn_ennemi = 0
@@ -89,6 +89,7 @@ pygame.key.set_repeat(10, 10)
 
 horloge = pygame.time.Clock()
 couleur_fond = NOIR
+global scene
 
 scene = {
     "etoiles":[],
@@ -330,10 +331,10 @@ def get_delta_pos(entite,temps_maintenant,force_entite,orientation,stop=False):
     ay = a*math.sin(angle_rad)
             
 
-    #calcul gravité pour chaque planete
-    # a_planete_x,a_planete_y = calcul_gravite_planete(entite)
-    # ax+=a_planete_x
-    # ay+=a_planete_y
+    # calcul gravité pour chaque planete
+    a_planete_x,a_planete_y = calcul_gravite_planete(entite)
+    ax+=a_planete_x
+    ay+=a_planete_y
 
     #mise a jour vitesse
     vx = vx0+ax*delta_t
@@ -385,7 +386,7 @@ def get_delta_pos(entite,temps_maintenant,force_entite,orientation,stop=False):
     return [x0-x,y0-y]
 
 def calcul_gravite_planete(entite):
-    if entite["type"] !="player":# and entite["type"] !="missile": #and entite["type"] !="ennemi":
+    if entite["type"] !="player" and entite["type"] !="missile" and entite["type"] !="ennemi":
         return 0,0
     else:
         a_planete_x = 0
@@ -532,9 +533,7 @@ def afficher_menu():
         text_shoot = pygame.transform.scale(text_shoot,(4*dimensions_fenetre[0]/5,dimensions_fenetre[1]/17))
         fenetre.blit(text_shoot,(dimensions_fenetre[0]/10,500))
 
-        if nombre_vies<NOMBRE_VIES_INIT:
-            fenetre.blit(texte_meilleur_score,(3*dimensions_fenetre[0]/8,20))
-            fenetre.blit(texte_score,(5*dimensions_fenetre[0]/8,27))
+       
         
         for i in range(nombre_vies):
             fenetre.blit(image_coeur,(dimensions_fenetre[0]/2-(nombre_vies/2)*dimensions_fenetre[0]/10+i*dimensions_fenetre[0]/10,dimensions_fenetre[1]-200))
@@ -542,6 +541,12 @@ def afficher_menu():
         texte_game_over = police.render(("GAME OVER"),True , ROUGE)
         texte_game_over = pygame.transform.scale(texte_game_over,(4*dimensions_fenetre[0]/5,dimensions_fenetre[1]/15))
         fenetre.blit(texte_game_over,(dimensions_fenetre[0]/10,dimensions_fenetre[1]/2))
+        
+
+    if nombre_vies<NOMBRE_VIES_INIT:
+            fenetre.blit(texte_meilleur_score,(3*dimensions_fenetre[0]/8,20))
+            fenetre.blit(texte_score,(5*dimensions_fenetre[0]/8,27))
+            
 
 
 def affiche(scene,delta_pos):
@@ -657,7 +662,7 @@ def collision_planetes(entite):
                 min_dist = distance_planete
                 index_planete_proche = index
             
-            if r2 <= rayon_total**2 and not estEnAnimation(ennemi):
+            if r2 <= rayon_total**2 and not estEnAnimation(entite):
                 commenceAnimation(entite,"animation_mort",1)
 
         if entite["type"] == "player" and r2 <= rayon_total**2:
@@ -816,7 +821,7 @@ def ai_ennemi(ennemi):
 
     #tant que le timer n'est pas fini, on applique une force plus grande que la normale
     if ennemi["cpt_reverse"] <= CPT_REVERSE and ennemi["cpt_reverse"] > -1:
-        force_ennemi= 0.5
+        force_ennemi= 1
         ennemi["cpt_reverse"] -= 1
         ennemi["avance"] = True
 
@@ -903,11 +908,22 @@ def despawn_ennemis():
 
 def reset_jeu():
     global enjeu
+    global nombre_vies
+    global highscore
+    global position_player
     enjeu = False
+    global scene
+    
     #on supprime toute les entite
-    for key in scene:
-        for entite in scene[key]:
-            destroy_entite(scene[key],entite)
+    scene = {
+    "etoiles":[],
+    "planetes" : [],
+    "entites" : [],
+    "missiles":[],
+    "player":[],
+    "ennemis":[]
+}
+
     #on genere la carte
     
     cree_vaisseau()
@@ -920,9 +936,13 @@ def reset_jeu():
     player["orientation"]=0
     player["avance"]=False
     player["animationActuelle"]=None
+    position_player = x_player_ecran,y_player_ecran
 
     generer_carte()
     generer_fond_etoile()
+    if nombre_vies == 0:
+        nombre_vies = NOMBRE_VIES_INIT
+        highscore = 0
     
     
     
