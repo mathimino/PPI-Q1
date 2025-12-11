@@ -1,3 +1,7 @@
+#BECKERS Mathias
+#PIRICK Arthur
+#https://github.com/mathimino/PPI-Q1
+
 import math
 import pygame
 import random
@@ -86,7 +90,7 @@ dernier_spawn_ennemi = 0
 NBR_ENNEMIS_MAX = 10
 TEMPS_SPAWN_ENNEMIS_MIN = 2
 ennemis_images = ["ship_avance.png","ship_stop.png"]
-DUREE_VIE_ENNEMIS = 60
+DUREE_VIE_ENNEMIS = 120
 
 # Initialisation
 
@@ -101,7 +105,7 @@ horloge = pygame.time.Clock()
 
 police = pygame.font.SysFont('monospace', dimensions_fenetre[1]//50, True)
 #cration de toutes les listes
-scene = {
+scene ={
     "etoiles":[],
     "planetes" : [],
     "entites" : [],
@@ -722,7 +726,6 @@ def collision_missiles():
                         and missile["rect"].colliderect(entite["rect"]) and not estEnAnimation(missile) and not estEnAnimation(entite):
 
                         if entite["type"] == "player":
-                            return
                             stop_vaisseau(player)
                         if entite["type"] == "missile":
 
@@ -986,11 +989,6 @@ def reset_jeu():
         nombre_vies = NOMBRE_VIES_INIT
         highscore = 0
         score = 0
-    
-    
-    
-    
-
     return
 
 
