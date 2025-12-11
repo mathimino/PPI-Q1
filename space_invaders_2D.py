@@ -2,6 +2,8 @@ import math
 import pygame
 import sys
 import random
+
+
 ##### Constantes #####
 
 NOIR = (0, 0, 0)
@@ -29,7 +31,10 @@ NOMBRE_ETOILES = 10000
 global nombre_vies
 nombre_vies = 3
 NOMBRE_VIES_INIT=3
+global highscore
 highscore = 0
+global score
+score = 0
 
 
 ##### Fin constantes #####
@@ -261,7 +266,8 @@ def nouvelle_entite(type_entite,position_entite,rayon_entite,masse_entite,image=
      'cpt_reverse': -1,
      'cpt_shot': 0,
      'rect': None,
-     'temps_spawn':pygame.time.get_ticks()
+     'temps_spawn':pygame.time.get_ticks(),
+     'tireur':""
     }
 def destroy_entite(scene,entite):
     if entite in scene:
@@ -513,14 +519,16 @@ def afficher_missile(missile):
 
 
 def afficher_menu():
-    global nombre_vies
+    global nombre_vies,highscore,score
     fenetre.fill(couleur_fond)
     fenetre.blit(images_menu,(0,0))
     fenetre.blit(image_titre,(10,50))
     temps_titre = pygame.time.get_ticks()
-    texte_meilleur_score = police.render(("HIGHSCORE :"),True,WHITE)
-    texte_score = police.render(str(round(highscore)),True,WHITE)
-    texte_meilleur_score = pygame.transform.scale(texte_meilleur_score,(dimensions_fenetre[0]/4,dimensions_fenetre[1]/28))
+    if score >highscore:
+        highscore = score
+    texte_meilleur_score = police.render(("HIGHSCORE :"+str(highscore)),True,WHITE)
+    texte_meilleur_score_coord = texte_meilleur_score.get_rect(center=(dimensions_fenetre[0]/2,dimensions_fenetre[1]/30))
+    score = 0
     if nombre_vies>0:
         if (temps_titre//1000)%3!=0:
 
@@ -547,8 +555,8 @@ def afficher_menu():
         
 
     if nombre_vies<NOMBRE_VIES_INIT:
-            fenetre.blit(texte_meilleur_score,(3*dimensions_fenetre[0]/8,20))
-            fenetre.blit(texte_score,(5*dimensions_fenetre[0]/8,27))
+            fenetre.blit(texte_meilleur_score,texte_meilleur_score_coord)
+            
             
 
 
@@ -585,7 +593,11 @@ def affiche(scene,delta_pos):
                     afficher_missile(entite)
     if debug:
         afficher_text_debug()                   
+    texte_score = police.render("score: "+str(score),True , WHITE)
+    texte_score_coord = texte_score.get_rect(center=(dimensions_fenetre[0]/2,dimensions_fenetre[1]/30))
+    fenetre.blit(texte_score ,texte_score_coord)
 
+    
 def afficher_text_debug():
     coord_txt= police.render("X:" + str(round(position_player[0])) + ",Y:" + str(round(position_player[1])), True, WHITE)
     fenetre.blit(coord_txt, (0,0))
@@ -608,6 +620,7 @@ def tir_cannon(entite):
             x,y = x_player_ecran,y_player_ecran 
             
         missile = nouvelle_entite('missile',[x,y],RAYON_VAISSEAU/2,1000,None,orientation_missile,0,0,900,200)
+        missile["tireur"]= entite["type"]
         angle_rad_missile = math.radians(orientation_missile)
         missile['vitesse_x'] = entite["vitesse_x"] + VITESSE_MISSILE_INIT*math.cos(angle_rad_missile)
         missile['vitesse_y'] = entite["vitesse_y"] + VITESSE_MISSILE_INIT*math.sin(angle_rad_missile)
@@ -672,6 +685,7 @@ def collision_planetes(entite):
     return index_planete_proche
     
 def collision_missiles():
+    global score
     # pour chaque missile
     temps_maintenant = pygame.time.get_ticks()
     for missile in scene["missiles"]:
@@ -697,6 +711,8 @@ def collision_missiles():
                         else:
                             destroy_entite(scene["missiles"],missile)
                         commenceAnimation(entite,"animation_mort",1)
+                        if entite["type"] == "ennemi" and missile["tireur"]=="player":
+                            score =score+1000
                         
                         
     
@@ -910,7 +926,7 @@ def despawn_ennemis():
 def reset_jeu():
     global enjeu
     global nombre_vies
-    global highscore
+    global highscore,score
     global position_player
     enjeu = False
     global scene
@@ -941,9 +957,11 @@ def reset_jeu():
 
     generer_carte()
     generer_fond_etoile()
+    
     if nombre_vies == 0:
         nombre_vies = NOMBRE_VIES_INIT
         highscore = 0
+        score = 0
     
     
     
