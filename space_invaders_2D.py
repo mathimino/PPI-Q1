@@ -61,6 +61,9 @@ debug = False
 temps_avant_recharge = 0
 delai_recharge = 200
 
+#entite
+global scene
+
 # player
 #coordonnés du player dans le repere écran
 x_player_ecran,y_player_ecran = dimensions_fenetre[0]/2,dimensions_fenetre[1]/2
@@ -95,8 +98,9 @@ pygame.display.set_caption("Space Invaders 2D")
 pygame.key.set_repeat(10, 10)
 horloge = pygame.time.Clock()
 
-global scene
 
+police = pygame.font.SysFont('monospace', dimensions_fenetre[1]//50, True)
+#cration de toutes les listes
 scene = {
     "etoiles":[],
     "planetes" : [],
@@ -106,22 +110,22 @@ scene = {
     "ennemis":[]
 }
 
-police = pygame.font.SysFont('monospace', dimensions_fenetre[1]//50, True)
-
-# Création de listes contenant les images de leur répertoirs respectifs
+#ajout des images de planetes aux listes
 planetes_images = []
 list_planetes_images = ["jupiter.png","mars.png","mercure.png","neptune.png","saturne.png","terre.png","uranus.png","venus.png"]
 for image_planete in list_planetes_images:
     planetes_images.append(pygame.image.load('images/planetes/' + image_planete).convert_alpha(fenetre))
 
-explosion_nom_poses = ["explosion_1","explosion_2","explosion_3"]
+#ajout des images d explosion auux listes
 explosion_images = []
-
+explosion_nom_poses = ["explosion_1","explosion_2","explosion_3"]
 for nom_fichier in explosion_nom_poses:
-    print(explosion_images)
     image_explosion = pygame.image.load('images/'+nom_fichier + ".png").convert_alpha(fenetre)
     image_explosion = pygame.transform.scale(image_explosion,(RAYON_VAISSEAU,RAYON_VAISSEAU))
     explosion_images.append(image_explosion)
+
+#on ajoute
+
 
 missile_images = explosion_images
 image_missile = pygame.image.load("images/missile.png").convert_alpha(fenetre)
@@ -235,10 +239,8 @@ def animation_missile():
 def animation_mort_globale(entite,scene):
     global enjeu,nombre_vies
     if entite['animationActuelle']!=None:
-                        # print("animation mtn = " + str(entite['animationActuelle']))
                         animationActuelle = entite['animationActuelle']
                         poseActuelle = mouvementActuel(animationActuelle)
-                        # print(ennemi)
                         anime(animationActuelle)
                         nouvellePose = mouvementActuel(animationActuelle)
                         if nouvellePose == None:
@@ -287,7 +289,6 @@ def ajouteEntite(scene, entite):
     
 def explosion_taille(entite,facteur_explosion):
     explosion_taille =entite["rayon"]*2*facteur_explosion
-    # print(explosion_images)
     explosion_enti_1 = pygame.transform.scale(explosion_images[0],(explosion_taille,explosion_taille))
     explosion_enti_2 = pygame.transform.scale(explosion_images[1],(explosion_taille,explosion_taille))
     explosion_enti_3 = pygame.transform.scale(explosion_images[2],(explosion_taille,explosion_taille))
@@ -523,8 +524,6 @@ def afficher_missile(missile):
     fenetre.blit(image_missile,missile["rect"])
     if debug:
         pygame.draw.rect(fenetre, ROUGE, missile["rect"], 1)
-    # if player["rect"].collidepoint(x,y):
-    #     print("touche")
     
     return   
 
@@ -692,7 +691,6 @@ def collision_planetes(entite):
 
         if (entite["type"] == "player" or entite["type"] == "missile") and r2 <= rayon_total**2:
             commenceAnimation(entite,"animation_mort",1)
-            # print()
 
     # on retourne l'index de la planete la plus proche de l'ennemi
     return index_planete_proche
@@ -853,9 +851,7 @@ def ai_ennemi(ennemi):
         ennemi["cpt_shot"]= CPT_SHOT
         # Quanf le timer est fini, on a 50% de chance de tirer
         can_shoot = random.randint(1,2)
-        # print(can_shoot)
         if can_shoot == 1 :
-            # print("shot!")
             tir_cannon(ennemi)
 
 
@@ -873,12 +869,10 @@ def spawn_enemis():
     spawn_random = random.randint(1,20)
     spawn_time = pygame.time.get_ticks()//1000 #en secondes piles
 
-    # print(dernier_spawn_ennemi!=spawn_time)
 
     if nbr_ennemis<=NBR_ENNEMIS_MAX and dernier_spawn_ennemi!=spawn_time and spawn_random==1 and (spawn_time%TEMPS_SPAWN_ENNEMIS_MIN)==0:
         dernier_spawn_ennemi = spawn_time
-        # print(spawn_random)
-        # print("spawn")
+
         
         x=0
         y=0
@@ -911,7 +905,6 @@ def spawn_enemis():
             delta_y = y-planete["position"][1]
             distance2_planete = delta_x**2 + delta_y**2
             if distance2_planete<= planete["rayon"] + DISTANCE_REVERSE_PLANETE + RAYON_VAISSEAU:
-                print("in planete")
                 if cote == 1 or cote == 3:
                     x += planete["rayon"] + DISTANCE_REVERSE_PLANETE + RAYON_VAISSEAU
                 elif cote == 2 or cote == 4:
@@ -1037,7 +1030,6 @@ while True:
             if not estEnAnimation(ennemi):
                 ai_ennemi(ennemi)
 
-        print(player_avance)
         mise_a_jour_etat_missile(delta_t_missile)
         delta_pos = [0,0]        
         if not estEnAnimation(player):
@@ -1046,7 +1038,6 @@ while True:
         affiche(scene, delta_pos)
        # gerer_collision_generale()
         collision_planetes(player)
-        # print(player["rect"].colliderect(ennemi["rect"]))
         collision_missiles()
         collision_vaisseaux()
     if not enjeu:
