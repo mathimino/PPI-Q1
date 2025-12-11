@@ -981,9 +981,10 @@ while True:
         delta_mouse_x, delta_mouse_y = mouse_x-x_player_ecran, mouse_y-y_player_ecran
         
         # Calcul du nouvel angle du vaisseau par rapport à la position de la souris (modulo 360)
-        angle_rad = math.atan2(delta_mouse_y,delta_mouse_x)
-        orientation_player = (math.degrees(angle_rad))%360
-        player["orientation"] = orientation_player
+        if not estEnAnimation(player):
+            angle_rad = math.atan2(delta_mouse_y,delta_mouse_x)
+            orientation_player = (math.degrees(angle_rad))%360
+            player["orientation"] = orientation_player
         if player_avance:
             force_player = puissance_player
         else:
