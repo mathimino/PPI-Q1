@@ -691,9 +691,7 @@ def affiche(scene,delta_pos):
                     afficher_vaisseau(entite)
                     animation_mort_globale(entite,scene["ennemis"])
                     
-                
-            #Culling
-
+                    
             #on calcule la distance de l'entite par rapport au centre de l ecran
             distance_entite_x = abs(entite["position"][0] - x_player_ecran)-rayon
             distance_entite_y = abs(entite["position"][1] - y_player_ecran) - rayon
