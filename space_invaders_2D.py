@@ -54,6 +54,8 @@ global enjeu
 enjeu = False
 global debug
 debug = False
+global quitte 
+quitte = False
 
 
 
@@ -593,54 +595,67 @@ def afficher_menu():
     texte_score= police.render(("TON SCORE :"+str(score)),True,WHITE)
     texte_meilleur_score_coord = texte_meilleur_score.get_rect(center=(dimensions_fenetre[0]/2,2*dimensions_fenetre[1]/30))
     texte_score_coord = texte_score.get_rect(center=(dimensions_fenetre[0]/2,dimensions_fenetre[1]/30))
-    
+    texte_quitter = police.render(("Appuyez sur [esc] pour quitter"),True , ROUGE)
+    texte_quitter = pygame.transform.scale(texte_quitter,(4*dimensions_fenetre[0]/5,dimensions_fenetre[1]/15))
     #si on a encore des vies
-    if nombre_vies>0:
-        #on fait clignoter le texte COMMENCE et le texte record battu
-        if (temps_titre//1000)%3!=0:
-            if nouveau_meilleur_score:
-                texte_nouveau_record = police.render(("RECORD BATTU!!"),True,ROUGE)
-                texte_nouveau_record_coord = texte_nouveau_record.get_rect(center=(dimensions_fenetre[0]/2-150,2*dimensions_fenetre[1]/30))
-                fenetre.blit(texte_nouveau_record,texte_nouveau_record_coord)
-            commenceJouer= police.render(("Appuyez sur espace pour commencer"), True, JAUNE)
-            commenceJouer = pygame.transform.scale(commenceJouer,(2*dimensions_fenetre[0]/3,dimensions_fenetre[1]/14))
-            fenetre.blit(commenceJouer,(dimensions_fenetre[0]/6,300))
-
-        #on affiche les raccourcis
-        text_controls = police.render(("Controler le vaisseau avec Z et le curseur de souris"), True, WHITE)
-        text_controls = pygame.transform.scale(text_controls,(9*dimensions_fenetre[0]/10,dimensions_fenetre[1]/17))
-        fenetre.blit(text_controls,(dimensions_fenetre[0]/20,400))
-        
-        text_shoot = police.render(("Tirez avec un clic de la souris"), True, WHITE)
-        text_shoot = pygame.transform.scale(text_shoot,(4*dimensions_fenetre[0]/5,dimensions_fenetre[1]/17))
-        fenetre.blit(text_shoot,(dimensions_fenetre[0]/10,500))
-
-       
-        #on affiche le nombre de vie centrée
-        for i in range(nombre_vies):
-           fenetre.blit(image_coeur,(dimensions_fenetre[0]/2-(nombre_vies/2)*dimensions_fenetre[0]/10+i*dimensions_fenetre[0]/10,dimensions_fenetre[1]-200))
-
-    #si on a plus de vie        
-    if nombre_vies <=0:
-        if (temps_titre//1000)%3!=0:
-            if nouveau_meilleur_score:
-                texte_nouveau_record = police.render(("RECORD BATTU!!"),True,ROUGE)
-                texte_nouveau_record_coord = texte_nouveau_record.get_rect(center=(dimensions_fenetre[0]/2-150,2*dimensions_fenetre[1]/30))
-                fenetre.blit(texte_nouveau_record,texte_nouveau_record_coord)
-            texte_ecran_titre = police.render(("Appuyez pour revenir à l'écran titre ! "),True,JAUNE)
-            texte_ecran_titre= pygame.transform.scale(texte_ecran_titre,(dimensions_fenetre[0]/2,dimensions_fenetre[1]/15))
-            texte_ecran_titre_coord = texte_ecran_titre.get_rect(center = (dimensions_fenetre[0]/2,3*dimensions_fenetre[1]/5))
-            fenetre.blit(texte_ecran_titre,texte_ecran_titre_coord)
+    if not quitte:
+        if nombre_vies>0:
+            #on fait clignoter le texte COMMENCE et le texte record battu
+            if (temps_titre//1000)%3!=0:
+                if nouveau_meilleur_score:
+                    texte_nouveau_record = police.render(("RECORD BATTU!!"),True,ROUGE)
+                    texte_nouveau_record_coord = texte_nouveau_record.get_rect(center=(dimensions_fenetre[0]/2-150,2*dimensions_fenetre[1]/30))
+                    fenetre.blit(texte_nouveau_record,texte_nouveau_record_coord)
+                commenceJouer= police.render(("Appuyez sur [espace] pour commencer"), True, JAUNE)
+                commenceJouer = pygame.transform.scale(commenceJouer,(2*dimensions_fenetre[0]/3,dimensions_fenetre[1]/14))
+                fenetre.blit(commenceJouer,(dimensions_fenetre[0]/6,300))
+                texte_quitter_cord = texte_quitter.get_rect(center = (dimensions_fenetre[0]/2,3.5*dimensions_fenetre[1]/5))
+                fenetre.blit(texte_quitter,texte_quitter_cord) 
+            #on affiche les raccourcis
+            text_controls = police.render(("Controler le vaisseau avec [Z] et le curseur de souris"), True, WHITE)
+            text_controls = pygame.transform.scale(text_controls,(9*dimensions_fenetre[0]/10,dimensions_fenetre[1]/17))
+            fenetre.blit(text_controls,(dimensions_fenetre[0]/20,400))
             
-        texte_game_over = police.render(("GAME OVER"),True , ROUGE)
-        texte_game_over = pygame.transform.scale(texte_game_over,(4*dimensions_fenetre[0]/5,dimensions_fenetre[1]/15))
-        fenetre.blit(texte_game_over,(dimensions_fenetre[0]/10,dimensions_fenetre[1]/2))
+            text_shoot = police.render(("Tirez avec un clic de la souris ou [T]"), True, WHITE)
+            text_shoot = pygame.transform.scale(text_shoot,(4*dimensions_fenetre[0]/5,dimensions_fenetre[1]/17))
+            fenetre.blit(text_shoot,(dimensions_fenetre[0]/10,500))
+
         
-    #on affiche le score apres la premiere partie
-    if nombre_vies<NOMBRE_VIES_INIT:
-            fenetre.blit(texte_meilleur_score,texte_meilleur_score_coord)
-            fenetre.blit(texte_score,texte_score_coord)
-    
+            #on affiche le nombre de vie centrée
+            for i in range(nombre_vies):
+                fenetre.blit(image_coeur,(dimensions_fenetre[0]/2-(nombre_vies/2)*dimensions_fenetre[0]/10+i*dimensions_fenetre[0]/10,dimensions_fenetre[1]-200))
+
+        #si on a plus de vie        
+        if nombre_vies <=0:
+            if (temps_titre//1000)%3!=0:
+                if nouveau_meilleur_score:
+                    texte_nouveau_record = police.render(("RECORD BATTU!!"),True,ROUGE)
+                    texte_nouveau_record_coord = texte_nouveau_record.get_rect(center=(dimensions_fenetre[0]/2-150,2*dimensions_fenetre[1]/30))
+                    fenetre.blit(texte_nouveau_record,texte_nouveau_record_coord)
+                texte_ecran_titre = police.render(("Appuyez sur [espace] pour revenir à l'écran titre ! "),True,JAUNE)
+                texte_ecran_titre= pygame.transform.scale(texte_ecran_titre,(dimensions_fenetre[0]/2,dimensions_fenetre[1]/15))
+                texte_ecran_titre_coord = texte_ecran_titre.get_rect(center = (dimensions_fenetre[0]/2,3*dimensions_fenetre[1]/5))
+                fenetre.blit(texte_ecran_titre,texte_ecran_titre_coord)
+                texte_quitter_cord = texte_quitter.get_rect(center = (dimensions_fenetre[0]/2,3.5*dimensions_fenetre[1]/5))
+                fenetre.blit(texte_quitter,texte_quitter_cord) 
+                
+            texte_game_over = police.render(("GAME OVER"),True , ROUGE)
+            texte_game_over = pygame.transform.scale(texte_game_over,(4*dimensions_fenetre[0]/5,dimensions_fenetre[1]/15))
+            fenetre.blit(texte_game_over,(dimensions_fenetre[0]/10,dimensions_fenetre[1]/2))
+        
+        
+        #on affiche le score apres la premiere partie
+        if nombre_vies<NOMBRE_VIES_INIT:
+                fenetre.blit(texte_meilleur_score,texte_meilleur_score_coord)
+                fenetre.blit(texte_score,texte_score_coord)
+    #si on quitte le jeu
+    else :
+        texte_fin = police.render(("Merci d'avoir jouer! A bientôt !"),True ,WHITE)
+        texte_fin = pygame.transform.scale(texte_fin,(dimensions_fenetre[0]/2,dimensions_fenetre[1]/15))
+        texte_fin_coord = texte_fin.get_rect(center = (dimensions_fenetre[0]/2,dimensions_fenetre[1]/2))
+        fenetre.blit(texte_fin,texte_fin_coord)
+
+        
     
             
 def affiche(scene,delta_pos):
@@ -911,13 +926,11 @@ def gerer_touche(event):
     global nouveau_meilleur_score
     global highscore
     global nombre_vies
+    global quitte
     
     #si on appuie sur la croix
-    if event.type == pygame.QUIT:
-            musique.stop()  
-            pygame.display.quit()
-            pygame.quit()
-            exit()
+    if event.type == pygame.QUIT or(event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE):
+            quitte = True
 
     #si clic souris
     if event.type == pygame.MOUSEBUTTONDOWN :
@@ -940,6 +953,7 @@ def gerer_touche(event):
                         stop_vaisseau(player)
                     case pygame.K_t :
                         tir_cannon(player)
+                    
 
                     #autodestruction du vaisseau
                     case pygame.K_o:
@@ -1229,6 +1243,14 @@ while True:
         pygame.key.set_repeat(0,0)
         #on affiche l ecran d attente
         afficher_menu()
+    if quitte:
+        afficher_menu()
+        pygame.display.flip()
+        pygame.time.wait(5000)
+        musique.stop()  
+        pygame.display.quit()
+        pygame.quit()
+        exit()
     #on raffraichit l image
     pygame.display.flip()
     horloge.tick(images_par_seconde)
