@@ -58,6 +58,7 @@ debug = False
 
 
 
+
 #variables missiles
 temps_avant_recharge = 0
 delai_recharge = 200
@@ -97,7 +98,6 @@ pygame.mixer.init()
 
 fenetre = pygame.display.set_mode(dimensions_fenetre)
 pygame.display.set_caption("Space Invaders 2D")
-pygame.key.set_repeat(10, 10)
 horloge = pygame.time.Clock()
 
 musique = pygame.mixer.Sound("sons/musique_fond.wav")
@@ -247,10 +247,9 @@ def animation_mort_globale(entite,scene):
                             entite['animationActuelle'] = None
                             if entite["type"]== "player":
                                 #si l entite est le vaissseauu du joeur
-                                #on reset le jeu et on enleve une vie
-                    
-                                reset_jeu()
+                                #on eleve une vie
                                 nombre_vies -=1
+                                enjeu = False
                             #on detruit l entite qui n as plus de pose
                             destroy_entite(scene,entite)
                                 
@@ -623,6 +622,16 @@ def afficher_menu():
 
     #si on a plus de vie        
     if nombre_vies <=0:
+        if (temps_titre//1000)%3!=0:
+            if nouveau_meilleur_score:
+                texte_nouveau_record = police.render(("RECORD BATTU!!"),True,ROUGE)
+                texte_nouveau_record_coord = texte_nouveau_record.get_rect(center=(dimensions_fenetre[0]/2-150,2*dimensions_fenetre[1]/30))
+                fenetre.blit(texte_nouveau_record,texte_nouveau_record_coord)
+            texte_ecran_titre = police.render(("Appuyez pour revenir à l'écran titre ! "),True,JAUNE)
+            texte_ecran_titre= pygame.transform.scale(texte_ecran_titre,(dimensions_fenetre[0]/2,dimensions_fenetre[1]/15))
+            texte_ecran_titre_coord = texte_ecran_titre.get_rect(center = (dimensions_fenetre[0]/2,3*dimensions_fenetre[1]/5))
+            fenetre.blit(texte_ecran_titre,texte_ecran_titre_coord)
+            
         texte_game_over = police.render(("GAME OVER"),True , ROUGE)
         texte_game_over = pygame.transform.scale(texte_game_over,(4*dimensions_fenetre[0]/5,dimensions_fenetre[1]/15))
         fenetre.blit(texte_game_over,(dimensions_fenetre[0]/10,dimensions_fenetre[1]/2))
@@ -899,6 +908,10 @@ def gerer_touche(event):
     global dernier_temps_missiles
     global debug
     global score
+    global nouveau_meilleur_score
+    global highscore
+    global nombre_vies
+    
     #si on appuie sur la croix
     if event.type == pygame.QUIT:
             musique.stop()  
@@ -941,15 +954,24 @@ def gerer_touche(event):
     
     #on appuie sur espace pour commencer le jeu
     elif not enjeu and event.type == pygame.KEYDOWN and event.key == pygame.K_SPACE:
-        enjeu = True
-        score = 0
-        temps_reset =pygame.time.get_ticks()
+        if nombre_vies<=0:
+            nombre_vies = 3
+            score = 0
+            highscore = 0
+            nouveau_meilleur_score = False
+        else:
+            reset_jeu()
+            enjeu = True
+            nouveau_meilleur_score = False
+            score = 0
+            temps_reset =pygame.time.get_ticks()
+            
 
-        #avant de reccomencer , on reset tout les temps a 0
-        for key in scene:
-            for entite in scene[key]:
-                entite["temps_avant"]=temps_reset
-        dernier_temps_missiles = temps_reset    
+            #avant de reccomencer , on reset tout les temps a 0
+            for key in scene:
+                for entite in scene[key]:
+                    entite["temps_avant"]=temps_reset
+            dernier_temps_missiles = temps_reset    
         
 def ai_ennemi(ennemi):
     #Distance au carré entre l'ennemi et le player
@@ -1105,8 +1127,8 @@ def despawn_ennemis():
      #Supprime tous les ennemis qui ont été hors de l'écran pendant un certain temps
     for ennemi in scene["ennemis"]:
         # si l'ennemi est hors de l'écran
-        if abs(ennemi["position"][0]) < 0 or abs(ennemi["position"][0]) > dimensions_fenetre[0] \
-            or abs(ennemi["position"][1]) < 0 or abs(ennemi["position"][1]) > dimensions_fenetre[1]:
+        if ennemi["position"][0] < 0 or ennemi["position"][0] > dimensions_fenetre[0] \
+            or ennemi["position"][1] < 0 or ennemi["position"][1] > dimensions_fenetre[1]:
             ennemi["duree_vie"] -= 1
             if ennemi["duree_vie"] < 0:
                 destroy_entite(scene["ennemis"],ennemi)
@@ -1166,9 +1188,10 @@ reset_jeu()
 while True:
     for event in pygame.event.get():
             gerer_touche(event)
+
     #boucle principale
     if enjeu:
-
+        pygame.key.set_repeat(10,10)
         delta_pos = [0,0]     
         
         #on gere les entite
@@ -1203,6 +1226,7 @@ while True:
 
        
     if not enjeu:
+        pygame.key.set_repeat(0,0)
         #on affiche l ecran d attente
         afficher_menu()
     #on raffraichit l image
