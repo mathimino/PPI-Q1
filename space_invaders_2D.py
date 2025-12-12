@@ -605,7 +605,7 @@ def afficher_menu():
                 if nouveau_meilleur_score:
                     texte_nouveau_record = police.render(("RECORD BATTU!!"),True,ROUGE)
                     texte_nouveau_record_coord = texte_nouveau_record.get_rect(center=(dimensions_fenetre[0]/2,2*dimensions_fenetre[1]/30))
-                    texte_nouveau_record_coord = texte_nouveau_record.get_rect(center=(texte_meilleur_score_coord[0]-texte_nouveau_record_coord[2]/2,dimensions_fenetre[1]/15))
+                    texte_nouveau_record_coord = texte_nouveau_record.get_rect(center=(texte_meilleur_score_coord[0]-texte_nouveau_record_coord[2]/2-20,dimensions_fenetre[1]/15))
                     fenetre.blit(texte_nouveau_record,texte_nouveau_record_coord)
                 commenceJouer= police.render(("Appuyez sur [espace] pour commencer"), True, JAUNE)
                 commenceJouer = pygame.transform.scale(commenceJouer,(2*dimensions_fenetre[0]/3,dimensions_fenetre[1]/14))
