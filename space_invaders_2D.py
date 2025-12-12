@@ -762,7 +762,7 @@ def gerer_touche(event):
             pygame.display.quit()
             pygame.quit()
             exit()
-    if event.type == pygame.MOUSEBUTTONDOWN :
+    if event.type == pygame.MOUSEBUTTONDOWN and enjeu:
         tir_cannon(player)
     if enjeu:
         if event.type == pygame.KEYDOWN or event.type == pygame.KEYUP:
