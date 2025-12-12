@@ -939,17 +939,15 @@ def gerer_touche(event):
     if event.type == pygame.QUIT or(event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE):
             quitte = True
 
-    #si clic souris
-    if event.type == pygame.MOUSEBUTTONDOWN and enjeu:
-        tir_cannon(player)
     if event.type == pygame.QUIT:
             musique.stop()  
             pygame.display.quit()
             pygame.quit()
             exit()
+
+    #si clic souris et en jeu
     if event.type == pygame.MOUSEBUTTONDOWN and enjeu:
         tir_cannon(player)
-
     #si on est deja en jeu
     if enjeu:
         if event.type == pygame.KEYDOWN or event.type == pygame.KEYUP:
