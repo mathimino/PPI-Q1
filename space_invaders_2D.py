@@ -50,7 +50,7 @@ nouveau_meilleur_score = False
 
 # Paramètres jeu,menu
 
-dimensions_fenetre = (1500,900)  # en pixels
+dimensions_fenetre = (900,900)  # en pixels
 DISTANCE_AFFICHAGE = 9*dimensions_fenetre[0]**2
 LIMITES_JEU = [10000,10000]
 images_par_seconde = 25
@@ -940,7 +940,8 @@ def gerer_touche(event):
             quitte = True
 
     #si clic souris
-    if event.type == pygame.MOUSEBUTTONDOWN :
+    if event.type == pygame.MOUSEBUTTONDOWN and enjeu:
+        tir_cannon(player)
     if event.type == pygame.QUIT:
             musique.stop()  
             pygame.display.quit()
